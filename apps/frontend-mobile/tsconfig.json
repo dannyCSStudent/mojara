@@ -1,0 +1,17 @@
+{
+  "extends": "expo/tsconfig.base",
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    "nativewind-env.d.ts"
+  ],
+  "compilerOptions": {
+    "strict": true,
+    "jsxImportSource": "nativewind",
+    "types": ["nativewind/types"],
+    "paths": {
+      "@repo/ui": ["../../packages/ui/src"],
+      "@repo/ui/*": ["../../packages/ui/src/*"]
+    }
+  }
+}

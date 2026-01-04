@@ -1,20 +1,35 @@
-"use client";
+import { Pressable, Text } from 'react-native'
+import { ReactNode } from 'react'
 
-import { ReactNode } from "react";
+type ButtonVariant = 'primary' | 'buy' | 'sell'
 
 interface ButtonProps {
-  children: ReactNode;
-  className?: string;
-  appName: string;
+  children: ReactNode
+  className?: string
+  variant?: ButtonVariant
+  onPress?: () => void
 }
 
-export const Button = ({ children, className, appName }: ButtonProps) => {
+export function Button({
+  children,
+  className = '',
+  variant = 'primary',
+  onPress,
+}: ButtonProps) {
+  const variants: Record<ButtonVariant, string> = {
+    primary: 'bg-blue-600',
+    buy: 'bg-green-600',
+    sell: 'bg-red-600',
+  }
+
   return (
-    <button
-      className={className}
-      onClick={() => alert(`Hello from your ${appName} app!`)}
+    <Pressable
+      onPress={onPress}
+      className={`px-4 py-3 rounded-xl ${variants[variant]} ${className}`}
     >
-      {children}
-    </button>
-  );
-};
+      <Text className="text-white font-semibold text-center">
+        {children}
+      </Text>
+    </Pressable>
+  )
+}
