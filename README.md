@@ -1,135 +1,177 @@
-# Turborepo starter
+# 🐟 Mojara Market
 
-This Turborepo starter is maintained by the Turborepo core team.
+**Mojara Market** is a cross-platform marketplace application designed to connect producers, vendors, and buyers through a clean, intelligent, and scalable mobile experience.
 
-## Using this example
+Built with **long-term infrastructure in mind**, Mojara is not just an app — it is a **platform foundation** engineered to grow into a data-driven, intelligence-assisted marketplace.
 
-Run the following command:
+---
 
-```sh
-npx create-turbo@latest
+## 🚀 Vision
+
+Most marketplace apps fail because they:
+- Accumulate UI inconsistency
+- Become difficult to scale
+- Mix business logic with presentation
+- Collapse under new features
+
+**Mojara Market is built differently.**
+
+From day one, the project prioritizes:
+- Semantic UI systems
+- Predictable architecture
+- Cross-platform parity
+- Intelligence-ready design
+
+This allows Mojara to evolve from a simple marketplace into a **smart market network**.
+
+---
+
+## 🧱 Architecture Overview
+
+### Frontend
+- **Expo / React Native**
+- **TypeScript**
+- **NativeWind (Tailwind for RN)**
+- **Monorepo-safe component architecture**
+
+### Backend (Planned / In Progress)
+- **FastAPI**
+- **Supabase (Postgres + Auth + Storage)**
+- **API-first design**
+
+---
+
+## 🎨 Phase 2 — UI Infrastructure (✅ Completed)
+
+Phase 2 establishes a **production-grade design system** that eliminates UI entropy and enforces consistency.
+
+### Implemented Systems
+
+#### 🧩 Screen Layout System
+- Safe Area handling
+- Consistent padding
+- Optional scroll behavior
+- Clean screen composition
+
+#### 🧠 Typography System (`AppText`)
+- Semantic variants (title, headline, body, caption, etc.)
+- Centralized styling
+- Dark mode support
+- No raw `<Text>` usage in screens
+
+#### 🎨 Color & Theme Tokens
+- Semantic colors (`primary`, `surface`, `danger`, etc.)
+- Dark / light mode support
+- Brand-safe and rebrand-ready
+
+#### 🔘 Button System (`AppButton`)
+- Semantic intent (`primary`, `success`, `danger`, etc.)
+- Loading and disabled handling
+- Monorepo-safe TypeScript integration
+- No UI logic inside screens
+
+#### 🧭 Header System
+- Optional, reusable screen headers
+- Clean title + action slots
+
+#### 📭 Empty & Loading States
+- Standardized placeholders
+- Clean UX for async states
+
+This phase ensures the UI layer is **stable, scalable, and future-proof**.
+
+---
+
+## 🧠 Phase 3 — Intelligence Layer (🔜 Next)
+
+Phase 3 introduces **application intelligence**.
+
+Planned capabilities include:
+- Global app state management
+- Auth-aware layouts
+- API data orchestration
+- Search, filtering, and sorting
+- Market signals & analytics
+- Trust and reputation indicators
+
+This is where Mojara evolves from an interface into a **smart system**.
+
+---
+
+## 🗺️ Roadmap (High Level)
+
+| Phase | Focus | Status |
+|------|------|------|
+| Phase 1 | Project scaffolding & foundations | ✅ |
+| Phase 2 | UI infrastructure & design systems | ✅ |
+| Phase 3 | App intelligence & data layer | 🔜 |
+| Phase 4 | Marketplace logic & transactions | 🔜 |
+| Phase 5 | Optimization, insights, and scale | 🔜 |
+
+---
+
+## 🧪 Development Principles
+
+- **Semantic over stylistic**
+- **Infrastructure before features**
+- **One source of truth**
+- **No silent technical debt**
+- **Design systems > one-off components**
+
+---
+
+## 📦 Monorepo Structure (Simplified)
+
+- mojara/
+- ├─ apps/
+- │ ├─ frontend-mobile/
+- │ └─ backend-fastapi/
+- ├─ packages/
+- │ └─ ui/
+- └─ README.md
+
+
+---
+
+## 🛠️ Getting Started (Frontend)
+
+```bash
+cd apps/frontend-mobile
+npm install
+npx expo start
 ```
 
-## What's inside?
+## 🧠 Long-Term Potential
 
-This Turborepo includes the following packages/apps:
+- Mojara Market is designed to support:
 
-### Apps and Packages
+- Multi-market expansion
 
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
+- Intelligent pricing signals
 
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
+- Trust and reputation scoring
 
-### Utilities
+- AI-assisted recommendations
 
-This Turborepo has some additional tools already setup for you:
+- Vendor analytics
 
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
+- Decentralized market insights
 
-### Build
+- This repository represents the foundation of that system.
 
-To build all apps and packages, run the following command:
+## 📜 License
 
-```
-cd my-turborepo
+- Private / Proprietary (subject to change)
 
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo build
+## ✊ Closing Note
 
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo build
-yarn dlx turbo build
-pnpm exec turbo build
-```
+- Mojara Market is being built deliberately.
 
-You can build a specific package by using a [filter](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters):
+- Every layer is designed to scale.
+- Every abstraction has purpose.
+- Every decision is future-facing.
 
-```
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo build --filter=docs
+- This is not a prototype.
+- This is infrastructure.
 
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo build --filter=docs
-yarn exec turbo build --filter=docs
-pnpm exec turbo build --filter=docs
-```
 
-### Develop
-
-To develop all apps and packages, run the following command:
-
-```
-cd my-turborepo
-
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo dev
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo dev
-yarn exec turbo dev
-pnpm exec turbo dev
-```
-
-You can develop a specific package by using a [filter](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters):
-
-```
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo dev --filter=web
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo dev --filter=web
-yarn exec turbo dev --filter=web
-pnpm exec turbo dev --filter=web
-```
-
-### Remote Caching
-
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
-
-Turborepo can use a technique known as [Remote Caching](https://turborepo.com/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
-
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
-
-```
-cd my-turborepo
-
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo login
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo login
-yarn exec turbo login
-pnpm exec turbo login
-```
-
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
-
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
-
-```
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo link
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo link
-yarn exec turbo link
-pnpm exec turbo link
-```
-
-## Useful Links
-
-Learn more about the power of Turborepo:
-
-- [Tasks](https://turborepo.com/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.com/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.com/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.com/docs/reference/configuration)
-- [CLI Usage](https://turborepo.com/docs/reference/command-line-reference)
