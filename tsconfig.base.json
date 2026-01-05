@@ -8,12 +8,12 @@
     "jsx": "react-native",
     "baseUrl": ".",
     "paths": {
-      "@/*": ["packages/ai-components/src/*"],
+      
       "@ui/*": ["packages/ui/src/*"],
-      "@repo/supabase/*": ["packages/supabase/*"],
-      "@repo/ui": ["packages/ui/src/index.ts"],
-      "@repo/ui/*": ["packages/ui/src/*"],
-      "@repo/tailwind-config/*": ["packages/tailwind-config/*"]
+      // "@repo/supabase/*": ["packages/supabase/*"],
+      // "@repo/ui": ["packages/ui/src/index.ts"],
+      // "@repo/ui/*": ["packages/ui/src/*"],
+      // "@repo/tailwind-config/*": ["packages/tailwind-config/*"]
     },
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,

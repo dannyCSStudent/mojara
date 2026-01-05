@@ -1,16 +1,19 @@
-import { Text, View } from 'react-native'
-import { Button } from '@repo/ui'
+import { Screen, AppText, AppButton } from "../components";
 
-export default function Page() {
+export default function Home() {
   return (
-    <View className="flex-1 items-center p-6">
-      <View className="flex-1 justify-center max-w-[960px]">
-        <Button appName="MyApp">Click Me</Button>
-        <Text className="text-[64px] font-bold">Hello World</Text>
-        <Text className="text-[36px] text-slate-700">
-          This is the first page of your app.
-        </Text>
-      </View>
-    </View>
-  )
+    <Screen className="items-center justify-center gap-6">
+      <AppText variant="title">
+        Mojara 🐟
+      </AppText>
+
+      <AppText variant="subheading" className="text-center">
+        Fresh markets. Direct deals.
+      </AppText>
+
+      <AppButton variant="primary">
+        Get Started
+      </AppButton>
+    </Screen>
+  );
 }

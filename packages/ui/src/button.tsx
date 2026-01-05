@@ -1,7 +1,11 @@
 import { Pressable, Text } from 'react-native'
 import { ReactNode } from 'react'
+import { cssInterop } from 'nativewind'
 
 type ButtonVariant = 'primary' | 'buy' | 'sell'
+
+cssInterop(Pressable, { className: "style" });
+cssInterop(Text, { className: "style" });
 
 interface ButtonProps {
   children: ReactNode
