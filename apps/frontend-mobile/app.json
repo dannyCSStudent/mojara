@@ -30,6 +30,10 @@
         "backgroundColor": "#ffffff"
       },
       "package": "com.anonymous.frontendmobile"
+    },
+    "extra": {
+      "SUPABASE_URL": "https://mgltyvetcrvkedqpjsje.supabase.co",
+      "SUPABASE_ANON_KEY": "sb_publishable_ya9RxzHUOzfEY6JXINn5WQ_J2mth-X_"
     }
   }
 }

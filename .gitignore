@@ -73,3 +73,15 @@ coverage/
 
 # Explicitly ensure frontend-mobile is tracked
 !apps/frontend-mobile/**
+
+# =========================
+# Python
+# =========================
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+
+# Backend env
+apps/backend-fastapi/.env

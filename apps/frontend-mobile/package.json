@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@repo/ui": "workspace:^",
+    "@supabase/supabase-js": "^2.89.0",
     "babel-preset-expo": "^54.0.9",
     "clsx": "^2.1.1",
     "expo": "^54.0.0",
@@ -23,7 +24,8 @@
     "react-native-reanimated": "~4.1.1",
     "react-native-safe-area-context": "~5.6.0",
     "react-native-web": "^0.21.2",
-    "react-native-worklets": "0.5.1"
+    "react-native-worklets": "0.5.1",
+    "zustand": "^5.0.9"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",

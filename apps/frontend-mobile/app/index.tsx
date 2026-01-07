@@ -1,19 +1,17 @@
-import { Screen, AppText, AppButton } from "../components";
+import { Redirect } from "expo-router";
+import { useAppStore } from "../store/useAppStore";
 
-export default function Home() {
-  return (
-    <Screen className="items-center justify-center gap-6">
-      <AppText variant="title">
-        Mojara 🐟
-      </AppText>
+export default function AppEntry() {
+  const isAuthenticated = useAppStore((s) => s.isAuthenticated);
+  const isHydrated = useAppStore((s) => s.isHydrated);
 
-      <AppText variant="subheading" className="text-center">
-        Fresh markets. Direct deals.
-      </AppText>
+  if (!isHydrated) {
+    return null; // later: splash / loader
+  }
 
-      <AppButton variant="primary">
-        Get Started
-      </AppButton>
-    </Screen>
+  return isAuthenticated ? (
+    <Redirect href="/(private)" />
+  ) : (
+    <Redirect href="/(public)" />
   );
 }
