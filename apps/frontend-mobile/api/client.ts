@@ -20,15 +20,13 @@ export async function apiRequest<T>(
   };
 
   const token = useAppStore.getState().authToken;
-
+  console.log("Auth Token:", token);
   if (token) {
     headers.Authorization = `Bearer ${token}`;
     console.log("Authorization header set");
   } else {
     console.log("No auth token present");
   }
-
-  console.log("AUTH HEADER:", headers.Authorization);
 
   const res = await fetch(`${ENV.API_URL}${endpoint}`, {
     method,
@@ -37,8 +35,6 @@ export async function apiRequest<T>(
       ? { body: JSON.stringify(body) }
       : {}),
   });
-
-  console.log(`API request to ${endpoint} responded with status ${res.status}`);
 
   if (!res.ok) {
     const error = await res.text();

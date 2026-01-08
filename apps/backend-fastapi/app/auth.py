@@ -20,8 +20,6 @@ _jwks_cache = None
 def get_jwks():
     global _jwks_cache
     if _jwks_cache is None:
-        print("JWKS_URL:", JWKS_URL)
-
         resp = httpx.get(JWKS_URL)
         resp.raise_for_status()
         _jwks_cache = resp.json()
@@ -32,7 +30,6 @@ def get_current_user(
     creds: HTTPAuthorizationCredentials = Depends(security),
 ):
     token = creds.credentials
-    print("JWT TOKEN:", token)
 
     try:
         unverified_header = jwt.get_unverified_header(token)
@@ -58,6 +55,10 @@ def get_current_user(
             issuer=SUPABASE_ISSUER,
         )
 
+        # 🔑 IMPORTANT ADDITIONS
+        payload["_jwt"] = token
+        payload["app_role"] = payload.get("role", "user")
+
         return payload
 
     except JWTError as e:
@@ -66,3 +67,32 @@ def get_current_user(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Not authenticated",
         )
+
+ROLE_LEVELS = {
+    "user": 1,
+    "admin": 2,
+}
+
+def require_role(required_role: str):
+    def dependency(user=Depends(get_current_user)):
+        role = user.get("app_metadata", {}).get("role")
+
+        if role not in ROLE_LEVELS:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Invalid role",
+            )
+
+        if ROLE_LEVELS[role] < ROLE_LEVELS[required_role]:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Insufficient permissions",
+            )
+
+        return user
+
+    return dependency
+
+
+def get_user_id(user: dict) -> str:
+    return user["sub"]
