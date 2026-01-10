@@ -15,7 +15,9 @@ from app.repositories.products import (
     update_product_for_vendor, 
     delete_product_for_vendor, 
     create_products_for_vendor_bulk,
-    bulk_update_products_for_vendor,)
+    bulk_update_products_for_vendor,
+    update_product_inventory)
+from app.repositories.orders import get_order_by_id, create_order
 from app.schemas.markets import MarketOut
 from app.schemas.vendors import VendorOut, VendorCreate
 from app.schemas.products import (
@@ -23,7 +25,10 @@ from app.schemas.products import (
     ProductCreate, 
     ProductUpdate, 
     ProductBulkCreate,
-    ProductBulkUpdate,)
+    ProductBulkUpdate,
+    ProductInventoryUpdate)
+from app.schemas.orders import CreateOrderPayload, OrderOut
+
 
 
 router = APIRouter(tags=["markets"])
@@ -249,3 +254,63 @@ def bulk_create_products(
 
     return products
 
+
+@router.patch(
+    "/markets/{market_id}/vendors/{vendor_id}/products/{product_id}/inventory",
+    response_model=ProductOut,
+)
+def update_inventory(
+    market_id: UUID,
+    vendor_id: UUID,
+    product_id: UUID,
+    payload: ProductInventoryUpdate,
+    user=Depends(get_current_user),
+):
+    jwt = user["_jwt"]
+    print("user:", user)
+    updates = payload.model_dump(exclude_unset=True)
+
+    if not updates:
+        raise HTTPException(status_code=400, detail="No inventory changes")
+
+    product = update_product_inventory(
+        jwt=jwt,
+        market_id=str(market_id),
+        vendor_id=str(vendor_id),
+        product_id=str(product_id),
+        updates=updates,
+    )
+
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+
+    return product
+
+
+@router.post(
+    "/markets/{market_id}/vendors/{vendor_id}/orders",
+    response_model=OrderOut,
+)
+def create_order_endpoint(
+    market_id: UUID,
+    vendor_id: UUID,
+    payload: CreateOrderPayload,
+    user=Depends(get_current_user),
+):
+    jwt = user["_jwt"]
+
+    order_id = create_order(
+        jwt=jwt,
+        market_id=str(market_id),
+        vendor_id=str(vendor_id),
+        customer_id=str(payload.customer_id),
+        items=[
+            {
+                "product_id": str(i.product_id),
+                "quantity": i.quantity,
+            }
+            for i in payload.items
+        ],
+    )
+
+    return get_order_by_id(jwt, order_id)

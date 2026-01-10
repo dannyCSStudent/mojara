@@ -1,6 +1,7 @@
 from app.db import get_supabase_client
 from app.schemas.products import ProductBulkUpdateItem
 from typing import List
+from fastapi import HTTPException
 
 def list_products(jwt: str):
     supabase = get_supabase_client(jwt)
@@ -202,3 +203,55 @@ def bulk_update_products_for_vendor(
             updated.append(res.data[0])
 
     return updated
+
+
+def update_product_inventory(
+    jwt: str,
+    market_id: str,
+    vendor_id: str,
+    product_id: str,
+    updates: dict,
+):
+    supabase = get_supabase_client(jwt)
+
+    res = (
+        supabase
+        .table("products")
+        .update(updates)
+        .eq("id", product_id)
+        .eq("vendor_id", vendor_id)
+        .eq("market_id", market_id)
+        .execute()
+    )
+
+    return res.data[0] if res.data else None
+
+
+def decrement_inventory(
+    jwt: str,
+    product_id: str,
+    vendor_id: str,
+    market_id: str,
+    quantity: int,
+):
+    supabase = get_supabase_client(jwt)
+
+    res = supabase.rpc(
+        "decrement_product_inventory",
+        {
+            "p_product_id": product_id,
+            "p_vendor_id": vendor_id,
+            "p_market_id": market_id,
+            "p_quantity": quantity,
+        },
+    ).execute()
+
+    if not res.data:
+        raise HTTPException(
+            status_code=409,
+            detail="Insufficient stock",
+        )
+
+    return res.data[0]
+
+

@@ -12,6 +12,8 @@ class ProductBase(BaseModel):
     name: str
     price: float
     active: bool = True
+    stock_quantity: int = 0
+    is_available: bool = True
 
 
 class ProductCreate(ProductBase):
@@ -22,6 +24,8 @@ class ProductUpdate(BaseModel):
     name: Optional[str] = None
     price: Optional[float] = None
     active: Optional[bool] = None
+    stock_quantity: Optional[int] = None
+    is_available: Optional[bool] = None
 
 
 class ProductOut(ProductBase):
@@ -72,3 +76,19 @@ NonEmptyProductUpdateList = Annotated[
 
 class ProductBulkUpdate(BaseModel):
     products: NonEmptyProductUpdateList
+
+
+class ProductBulkInventoryItem(BaseModel):
+    id: UUID
+    stock_quantity: Optional[int] = Field(None, ge=0)
+    is_available: Optional[bool] = None
+
+
+
+# -------------------------
+# Inventory UPDATE schemas
+# -------------------------
+
+class ProductInventoryUpdate(BaseModel):
+    stock_quantity: Optional[int] = Field(None, ge=0)
+    is_available: Optional[bool] = None
