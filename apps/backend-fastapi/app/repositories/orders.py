@@ -7,7 +7,7 @@ def create_order(
     jwt: str,
     market_id: str,
     vendor_id: str,
-    customer_id: str,
+    user_id: str,
     items: list[dict],
 ):
     supabase = get_supabase_client(jwt)
@@ -17,22 +17,19 @@ def create_order(
         {
             "p_market_id": market_id,
             "p_vendor_id": vendor_id,
-            "p_customer_id": customer_id,
+            "p_user_id": user_id,
             "p_items": items,  # [{ product_id, quantity }]
         },
     ).execute()
 
-    if not res.data or len(res.data) == 0:
+    if not res.data:
         raise HTTPException(
             status_code=400,
             detail="Order creation failed",
         )
+    print("RPC response:", res.data)
 
-    # 🚨 IMPORTANT: Supabase returns rows → grab first one
-    order = res.data[0]
-
-    return order
-
+    return res.data
 
 def get_order_by_id(jwt: str, order_id: str):
     supabase = get_supabase_client(jwt)
@@ -45,7 +42,7 @@ def get_order_by_id(jwt: str, order_id: str):
             id,
             market_id,
             vendor_id,
-            customer_id,
+            user_id,
             status,
             created_at,
             order_items (
@@ -65,7 +62,6 @@ def get_order_by_id(jwt: str, order_id: str):
             detail="Order not found",
         )
 
-    # 🔁 Map order_items → items
     order = res.data
     order["items"] = order.pop("order_items", [])
 

@@ -33,6 +33,10 @@ interface AppState {
   signOut: () => Promise<void>;
   restoreSession: () => Promise<void>;
 
+  /* ---------- Orders ---------- */
+  activeOrderId: string | null;
+  setActiveOrderId: (id: string | null) => void;
+
   /* ---------- Markets ---------- */
   markets: Market[];
   loadMarkets: () => Promise<void>;
@@ -60,15 +64,17 @@ export const useAppStore = create<AppState>((set) => ({
   setAuthToken: (token) => set({ authToken: token }),
   setUser: (user) => set({ user }),
 
+  /* ---------- Orders ---------- */
+  activeOrderId: null,
+  setActiveOrderId: (id) => set({ activeOrderId: id }),
+
   signIn: async (email, password) => {
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
-    if (error) {
-      throw error;
-    }
+    if (error) throw error;
 
     set({
       isAuthenticated: true,
@@ -86,6 +92,7 @@ export const useAppStore = create<AppState>((set) => ({
       authToken: null,
       user: null,
       markets: [],
+      activeOrderId: null,
     });
   },
 

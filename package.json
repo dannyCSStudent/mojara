@@ -6,16 +6,17 @@
     "node": ">=18"
   },
   "scripts": {
-    "dev": "turbo run dev",
+    "dev": "concurrently -k -n frontend,backend -c cyan,magenta \"pnpm --filter frontend-mobile dev\" \"pnpm --filter backend-fastapi dev\"",
     "build": "turbo run build",
     "lint": "turbo run lint",
     "check-types": "turbo run check-types",
     "format": "prettier --write \"**/*.{ts,tsx,md}\""
   },
   "devDependencies": {
+    "concurrently": "^9.2.1",
+    "prettier": "^3.7.4",
     "turbo": "^2.7.2",
-    "typescript": "5.9.2",
-    "prettier": "^3.7.4"
+    "typescript": "5.9.2"
   },
   "pnpm": {
     "overrides": {

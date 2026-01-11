@@ -286,31 +286,3 @@ def update_inventory(
 
     return product
 
-
-@router.post(
-    "/markets/{market_id}/vendors/{vendor_id}/orders",
-    response_model=OrderOut,
-)
-def create_order_endpoint(
-    market_id: UUID,
-    vendor_id: UUID,
-    payload: CreateOrderPayload,
-    user=Depends(get_current_user),
-):
-    jwt = user["_jwt"]
-
-    order_id = create_order(
-        jwt=jwt,
-        market_id=str(market_id),
-        vendor_id=str(vendor_id),
-        customer_id=str(payload.customer_id),
-        items=[
-            {
-                "product_id": str(i.product_id),
-                "quantity": i.quantity,
-            }
-            for i in payload.items
-        ],
-    )
-
-    return get_order_by_id(jwt, order_id)

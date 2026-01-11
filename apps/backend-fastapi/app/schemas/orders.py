@@ -18,7 +18,7 @@ class CreateOrderItem(BaseModel):
 # -------------------------
 
 class CreateOrderPayload(BaseModel):
-    customer_id: UUID
+    user_id: UUID
     items: List[CreateOrderItem]
 
 
@@ -42,7 +42,7 @@ class OrderOut(BaseModel):
     id: UUID
     market_id: UUID
     vendor_id: UUID
-    customer_id: UUID
+    user_id: UUID
     status: str
     created_at: datetime
     items: List[OrderItemOut]

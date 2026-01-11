@@ -27,7 +27,7 @@ def create_order_endpoint(
         jwt=jwt,
         market_id=str(market_id),
         vendor_id=str(vendor_id),
-        customer_id=str(payload.customer_id),
+        user_id=str(payload.user_id),
         items=[
             {
                 "product_id": str(i.product_id),
@@ -37,7 +37,7 @@ def create_order_endpoint(
         ],
     )
 
-    return get_order_by_id(jwt, order["id"])
+    return order
 
 
 @router.post(
