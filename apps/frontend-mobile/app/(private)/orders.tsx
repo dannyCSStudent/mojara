@@ -1,32 +1,51 @@
-import { View, Text, ActivityIndicator, FlatList } from "react-native";
-import { useEffect, useState } from "react";
+import {
+  View,
+  Text,
+  ActivityIndicator,
+  FlatList,
+  Pressable,
+} from "react-native";
+import { useState, useCallback } from "react";
+import { useRouter, useFocusEffect } from "expo-router";
 import { useAppStore } from "../../store/useAppStore";
 import { fetchMyOrders } from "../../api/orders";
 import { Order } from "../../api/types";
+import { usePolling } from "../../hooks/usePolling";
+
 
 export default function OrdersScreen() {
+  const router = useRouter();
   const user = useAppStore((s) => s.user);
   const isAuthenticated = useAppStore((s) => s.isAuthenticated);
 
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const loadOrders = useCallback(async () => {
     if (!isAuthenticated || !user) return;
 
-    async function loadOrders() {
-      try {
-        const data = await fetchMyOrders();
-        setOrders(data);
-      } catch (err) {
-        console.error("Failed to load orders", err);
-      } finally {
-        setLoading(false);
-      }
+    setLoading(true);
+    try {
+      const data = await fetchMyOrders();
+      setOrders(data);
+    } catch (err) {
+      console.error("Failed to load orders", err);
+    } finally {
+      setLoading(false);
     }
-
-    loadOrders();
   }, [isAuthenticated, user]);
+
+  usePolling(
+  loadOrders,
+  5000, // every 5 seconds
+  isAuthenticated
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      loadOrders();
+    }, [loadOrders])
+  );
 
   if (loading) {
     return (
@@ -52,14 +71,32 @@ export default function OrdersScreen() {
         data={orders}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <View className="border rounded-xl p-4 mb-3">
+          <Pressable
+            onPress={() =>
+              router.push(`/(private)/orders/${item.id}`)
+            }
+            className="border rounded-xl p-4 mb-3"
+          >
             <Text className="font-semibold">
               Order #{item.id.slice(0, 8)}
             </Text>
-            <Text className="text-gray-600 mt-1">
-              Status: {item.status.toUpperCase()}
+
+            <Text
+              className={`mt-1 font-medium ${
+                item.status === "confirmed"
+                  ? "text-green-600"
+                  : item.status === "canceled"
+                  ? "text-red-600"
+                  : "text-yellow-600"
+              }`}
+            >
+              {item.status.toUpperCase()}
             </Text>
-          </View>
+
+            <Text className="text-xs text-gray-500 mt-1">
+              {new Date(item.created_at).toLocaleString()}
+            </Text>
+          </Pressable>
         )}
       />
     </View>

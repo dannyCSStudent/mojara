@@ -12,9 +12,19 @@ interface CartState {
   vendorId: string | null;
   items: CartItem[];
 
-  /* derived */
-  totalItems: () => number;
-  totalPrice: () => number;
+  locked: boolean;
+  lockCart: () => void;
+  unlockCart: () => void;
+
+  /* derived state */
+  totalItems: number;
+  totalPrice: number;
+
+  /* helpers */
+  recompute: (items: CartItem[]) => {
+    totalItems: number;
+    totalPrice: number;
+  };
 
   /* actions */
   initCart: (marketId: string, vendorId: string) => void;
@@ -23,17 +33,20 @@ interface CartState {
   clearCart: () => void;
 }
 
+
 export const useCartStore = create<CartState>((set, get) => ({
   marketId: null,
   vendorId: null,
   items: [],
+  totalItems: 0,
+  totalPrice: 0,
+  locked: false,
 
-  /* ---------- Derived ---------- */
-  totalItems: () =>
-    get().items.reduce((sum, i) => sum + i.quantity, 0),
-
-  totalPrice: () =>
-    get().items.reduce((sum, i) => sum + i.price * i.quantity, 0),
+  /* ---------- helpers ---------- */
+  recompute: (items: CartItem[]) => ({
+    totalItems: items.reduce((sum, i) => sum + i.quantity, 0),
+    totalPrice: items.reduce((sum, i) => sum + i.price * i.quantity, 0),
+  }),
 
   /* ---------- Actions ---------- */
   initCart: (marketId, vendorId) => {
@@ -44,6 +57,8 @@ export const useCartStore = create<CartState>((set, get) => ({
         marketId,
         vendorId,
         items: [],
+        totalItems: 0,
+        totalPrice: 0,
       });
     }
   },
@@ -52,31 +67,39 @@ export const useCartStore = create<CartState>((set, get) => ({
     const items = get().items;
     const existing = items.find((i) => i.product_id === item.product_id);
 
-    if (existing) {
-      set({
-        items: items.map((i) =>
+    const nextItems = existing
+      ? items.map((i) =>
           i.product_id === item.product_id
             ? { ...i, quantity: i.quantity + 1 }
             : i
-        ),
-      });
-    } else {
-      set({
-        items: [...items, { ...item, quantity: 1 }],
-      });
-    }
+        )
+      : [...items, { ...item, quantity: 1 }];
+
+    set({
+      items: nextItems,
+      ...get().recompute(nextItems),
+    });
   },
 
   removeItem: (productId) => {
+    const nextItems = get().items.filter(
+      (i) => i.product_id !== productId
+    );
+
     set({
-      items: get().items.filter((i) => i.product_id !== productId),
+      items: nextItems,
+      ...get().recompute(nextItems),
     });
   },
+  lockCart: () => set({ locked: true }),
+  unlockCart: () => set({ locked: false }),
 
   clearCart: () =>
     set({
       items: [],
       marketId: null,
       vendorId: null,
+      totalItems: 0,
+      totalPrice: 0,
     }),
 }));

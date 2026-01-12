@@ -17,9 +17,8 @@ export default function VendorProductsScreen() {
 
   const initCart = useCartStore((s) => s.initCart);
   const addItem = useCartStore((s) => s.addItem);
-  const items = useCartStore((s) => s.items);
-  const totalItems = useCartStore((s) => s.totalItems());
-  const totalPrice = useCartStore((s) => s.totalPrice());
+  const totalItems = useCartStore((s) => s.totalItems);
+  const totalPrice = useCartStore((s) => s.totalPrice);
 
   /* ✅ stable initializer */
   const setupCart = useCallback(() => {
@@ -74,18 +73,11 @@ export default function VendorProductsScreen() {
         </View>
       ))}
 
-      {/* ✅ Cart Bar */}
+      {/* ✅ Floating Cart Bar */}
       {totalItems > 0 && (
         <Pressable
           onPress={() =>
-            router.push({
-              pathname: "/checkout",
-              params: {
-                marketId,
-                vendorId,
-                items: JSON.stringify(items),
-              },
-            })
+            router.push("/checkout")
           }
           className="absolute bottom-4 left-4 right-4 bg-black rounded-xl p-4"
         >

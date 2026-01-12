@@ -3,6 +3,7 @@ export interface OrderItem {
   product_id: string;
   quantity: number;
   price: number;
+  name: string;
 }
 
 export interface Order {
@@ -10,7 +11,7 @@ export interface Order {
   market_id: string;
   vendor_id: string;
   user_id: string;
-  status: "pending" | "confirmed" | "cancelled";
+  status: "pending" | "confirmed" | "canceled";
   created_at: string;
   items: OrderItem[];
 }

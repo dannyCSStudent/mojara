@@ -6,28 +6,24 @@ import {
   Alert,
 } from "react-native";
 import { useState } from "react";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { createOrder, confirmOrder } from "../../api/orders";
 import { useAppStore } from "../../store/useAppStore";
 import { Order } from "../../api/types";
+import { useCartStore } from "../../store/useCartStore";
 
 export default function CheckoutScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{
-    marketId: string;
-    vendorId: string;
-    items: string;
-  }>();
 
-  const { marketId, vendorId } = params;
+  /* ---------- Cart state (single source of truth) ---------- */
+  const marketId = useCartStore((s) => s.marketId);
+  const vendorId = useCartStore((s) => s.vendorId);
+  const items = useCartStore((s) => s.items);
+  const clearCart = useCartStore((s) => s.clearCart);
+  const lockCart = useCartStore((s) => s.lockCart);
 
-  let items: any[] = [];
-  try {
-    items = JSON.parse(params.items ?? "[]");
-  } catch {
-    Alert.alert("Error", "Invalid checkout data");
-  }
 
+  /* ---------- App state ---------- */
   const user = useAppStore((s) => s.user);
   const setActiveOrderId = useAppStore((s) => s.setActiveOrderId);
 
@@ -43,6 +39,9 @@ export default function CheckoutScreen() {
     );
   }
 
+  const safeMarketId = marketId!;
+  const safeVendorId = vendorId!;
+
   async function handleCheckout() {
     if (!user) {
       Alert.alert("Error", "You must be logged in");
@@ -52,13 +51,18 @@ export default function CheckoutScreen() {
     try {
       setLoading(true);
 
-      const createdOrder = await createOrder(marketId, vendorId, {
-        user_id: user.id,
-        items,
-      });
+      const createdOrder = await createOrder(
+        safeMarketId,
+        safeVendorId,
+        {
+          user_id: user.id,
+          items,
+        }
+      );
 
       setOrder(createdOrder);
       setActiveOrderId(createdOrder.id);
+      lockCart(); // 🔒
     } catch (err: any) {
       Alert.alert("Checkout failed", err.message ?? "Unknown error");
     } finally {
@@ -73,8 +77,9 @@ export default function CheckoutScreen() {
       setLoading(true);
 
       await confirmOrder(order.id);
-      setActiveOrderId(null);
 
+      setActiveOrderId(null);
+      clearCart(); // 🔥 single source cleanup
       Alert.alert("Success", "Order confirmed!");
       router.replace("/(private)/orders");
     } catch (err: any) {
@@ -89,7 +94,7 @@ export default function CheckoutScreen() {
       <Text className="text-2xl font-bold mb-4">Checkout</Text>
 
       <View className="mb-6">
-        {items.map((item: any) => (
+        {items.map((item) => (
           <View
             key={item.product_id}
             className="flex-row justify-between mb-2"
