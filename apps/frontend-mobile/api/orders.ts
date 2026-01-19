@@ -60,6 +60,19 @@ export function getOrder(orderId: string) {
   );
 }
 
-export async function fetchMyOrders(): Promise<Order[]> {
+export function fetchMyOrders(): Promise<Order[]> {
   return apiRequest<Order[]>("/orders/me");
+}
+
+/**
+ * Vendor orders (polling-safe)
+ */
+export function fetchVendorOrders(signal?: AbortSignal) {
+  return apiRequest<Order[]>(
+    "/orders?scope=vendor",
+    {
+      method: "GET",
+      signal,
+    }
+  );
 }

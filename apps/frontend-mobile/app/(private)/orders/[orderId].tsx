@@ -5,11 +5,12 @@ import {
   Pressable,
   Alert,
 } from "react-native";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useFocusEffect } from "expo-router";
 import { Screen, AppText } from "../../../components";
 import { getOrder, cancelOrder } from "../../../api/orders";
 import { Order } from "../../../api/types";
 import { usePolling } from "../../../hooks/usePolling";
+
 
 export default function OrderDetailsScreen() {
   const { orderId } = useLocalSearchParams<{ orderId: string }>();
@@ -17,6 +18,16 @@ export default function OrderDetailsScreen() {
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [canceling, setCanceling] = useState(false);
+  const [focused, setFocused] = useState(true);
+
+  useFocusEffect(
+  useCallback(() => {
+    setFocused(true);
+    return () => setFocused(false);
+  }, [])
+);
+
+
 
   /* ---------- Fetch ---------- */
   const loadOrder = useCallback(async () => {
@@ -29,10 +40,11 @@ export default function OrderDetailsScreen() {
 
   /* ---------- Poll (pending only) ---------- */
   usePolling(
-    loadOrder,
-    3000,
-    !!orderId && order?.status === "pending"
-  );
+  loadOrder,
+  3000,
+  focused && !!orderId && order?.status === "pending"
+);
+
 
   /* ---------- Cancel ---------- */
   async function handleCancelOrder() {
@@ -79,10 +91,11 @@ export default function OrderDetailsScreen() {
     );
   }
 
-  const total = order.items.reduce(
-    (sum, i) => sum + i.price * i.quantity,
-    0
-  );
+  const total = (order.items ?? []).reduce(
+  (sum, i) => sum + i.price * i.quantity,
+  0
+);
+
 
   return (
     <Screen className="gap-4">
@@ -96,7 +109,7 @@ export default function OrderDetailsScreen() {
       </AppText>
 
       <View className="border-t pt-4 gap-2">
-        {order.items.map((item) => (
+        {(order.items ?? []).map((item) => (
           <View
             key={item.product_id}
             className="flex-row justify-between"

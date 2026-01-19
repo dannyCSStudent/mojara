@@ -1,12 +1,14 @@
 import { useEffect } from "react";
 import { Screen, AppText } from "../../components";
 import { useAppStore } from "../../store/useAppStore";
+import { router } from "expo-router";
 
 export default function PrivateHome() {
   const markets = useAppStore((s) => s.markets);
   const loadMarkets = useAppStore((s) => s.loadMarkets);
   
 
+  router.push("/vendor/orders");
 
   useEffect(() => {
     loadMarkets();

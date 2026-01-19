@@ -1,35 +1,75 @@
 from app.db import get_supabase_client
 from fastapi import HTTPException
 from postgrest.exceptions import APIError
+import httpx
 
 
-def create_order(
-    jwt: str,
-    market_id: str,
-    vendor_id: str,
-    user_id: str,
-    items: list[dict],
-):
+# =========================
+# Queries
+# =========================
+
+def get_orders_for_user(jwt: str, user_id: str):
     supabase = get_supabase_client(jwt)
 
-    res = supabase.rpc(
-        "create_order_atomic",
-        {
-            "p_market_id": market_id,
-            "p_vendor_id": vendor_id,
-            "p_user_id": user_id,
-            "p_items": items,  # [{ product_id, quantity }]
-        },
-    ).execute()
-
-    if not res.data:
-        raise HTTPException(
-            status_code=400,
-            detail="Order creation failed",
+    res = (
+        supabase
+        .table("orders")
+        .select(
+            """
+            id,
+            market_id,
+            vendor_id,
+            user_id,
+            status,
+            created_at,
+            order_items (
+                product_id,
+                quantity,
+                products ( name )
+            )
+            """
         )
-    print("RPC response:", res.data)
+        .eq("user_id", user_id)
+        .order("created_at", desc=True)
+        .execute()
+    )
 
-    return res.data
+    return _normalize_orders(res.data)
+
+
+def get_orders_for_vendor(jwt: str, vendor_id: str):
+    supabase = get_supabase_client(jwt)
+
+    try:
+        res = (
+            supabase
+            .table("orders")
+            .select(
+                """
+                id,
+                market_id,
+                vendor_id,
+                user_id,
+                status,
+                created_at,
+                order_items:order_items!order_items_order_id_fkey (
+                    product_id,
+                    quantity,
+                    products ( name )
+                )
+                """
+            )
+            .eq("vendor_id", vendor_id)
+            .order("created_at", desc=True)
+            .execute()
+        )
+    except httpx.ConnectError:
+        raise HTTPException(503, "Database unavailable")
+    except APIError as e:
+        raise HTTPException(500, str(e))
+
+    return _normalize_orders(res.data)
+
 
 def get_order_by_id(jwt: str, order_id: str):
     supabase = get_supabase_client(jwt)
@@ -47,7 +87,8 @@ def get_order_by_id(jwt: str, order_id: str):
             created_at,
             order_items (
                 product_id,
-                quantity
+                quantity,
+                products ( name )
             )
             """
         )
@@ -57,32 +98,66 @@ def get_order_by_id(jwt: str, order_id: str):
     )
 
     if not res.data:
-        raise HTTPException(
-            status_code=404,
-            detail="Order not found",
-        )
+        raise HTTPException(404, "Order not found")
 
-    order = res.data
-    order["items"] = order.pop("order_items", [])
+    return _normalize_order(res.data)
 
-    return order
+
+# =========================
+# Vendor resolution
+# =========================
+
+def get_vendor_id_for_user(jwt: str, user_id: str) -> str:
+    supabase = get_supabase_client(jwt)
+    
+    res = (
+        supabase
+        .table("vendors")
+        .select("id")
+        .eq("user_id", user_id)
+        .single()
+        .execute()
+    )
+
+    if not res.data:
+        raise HTTPException(403, "User is not a vendor")
+
+    return res.data["id"]
+
+
+# =========================
+# Mutations
+# =========================
+
+def create_order(jwt, market_id, vendor_id, customer_id, items):
+    supabase = get_supabase_client(jwt)
+
+    res = supabase.rpc(
+        "create_order_atomic",
+        {
+            "p_market_id": market_id,
+            "p_vendor_id": vendor_id,
+            "p_customer_id": customer_id,
+            "p_items": items,
+        },
+    ).execute()
+
+    if not res.data:
+        raise HTTPException(400, "Order creation failed")
+
+    return res.data
 
 
 def confirm_order(jwt: str, order_id: str):
     supabase = get_supabase_client(jwt)
 
-    try:
-        res = supabase.rpc(
-            "confirm_order_atomic",
-            {"p_order_id": order_id},
-        ).execute()
-    except APIError as e:
-        if "not pending" in e.message.lower():
-            raise HTTPException(
-                status_code=409,
-                detail="Order is not in a confirmable state",
-            )
-        raise
+    res = supabase.rpc(
+        "confirm_order_atomic",
+        {"p_order_id": order_id},
+    ).execute()
+
+    if not res.data:
+        raise HTTPException(400, "Order confirmation failed")
 
     return res.data
 
@@ -95,10 +170,30 @@ def cancel_order(jwt: str, order_id: str):
         {"p_order_id": order_id},
     ).execute()
 
-    if not res.data or len(res.data) == 0:
-        raise HTTPException(
-            status_code=400,
-            detail="Order cancellation failed",
-        )
+    if not res.data:
+        raise HTTPException(400, "Order cancellation failed")
 
     return res.data
+
+
+# =========================
+# Normalization
+# =========================
+
+def _normalize_orders(rows):
+    return [_normalize_order(row) for row in rows or []]
+
+
+def _normalize_order(order: dict):
+    items = []
+
+    for i in order.pop("order_items", []) or []:
+        items.append({
+            "product_id": i["product_id"],
+            "quantity": i["quantity"],
+            "name": i.get("products", {}).get("name", ""),
+        })
+
+    order["items"] = items
+    return order
+
