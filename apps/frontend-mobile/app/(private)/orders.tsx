@@ -5,15 +5,15 @@ import {
   FlatList,
   Pressable,
 } from "react-native";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useRouter, useFocusEffect } from "expo-router";
 import { useAppStore } from "../../store/useAppStore";
 import { fetchMyOrders } from "../../api/orders";
 import { Order } from "../../api/types";
-import { usePolling } from "../../hooks/usePolling";
-
+import { supabase } from "../../lib/supabase";
 
 export default function OrdersScreen() {
+
   const router = useRouter();
   const user = useAppStore((s) => s.user);
   const isAuthenticated = useAppStore((s) => s.isAuthenticated);
@@ -21,25 +21,67 @@ export default function OrdersScreen() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const loadOrders = useCallback(async () => {
-    if (!isAuthenticated || !user) return;
+  const [initialLoad, setInitialLoad] = useState(true);
 
-    setLoading(true);
-    try {
-      const data = await fetchMyOrders();
-      setOrders(data);
-    } catch (err) {
-      console.error("Failed to load orders", err);
-    } finally {
-      setLoading(false);
-    }
-  }, [isAuthenticated, user]);
+const loadOrders = useCallback(async () => {
+  if (!isAuthenticated || !user) return;
 
-  usePolling(
-  loadOrders,
-  5000, // every 5 seconds
-  isAuthenticated
-  );
+  if (initialLoad) setLoading(true);
+
+  try {
+    const data = await fetchMyOrders();
+    setOrders(data);
+  } finally {
+    setLoading(false);
+    setInitialLoad(false);
+  }
+}, [isAuthenticated, user, initialLoad]);
+
+useEffect(() => {
+  if (!user) return;
+
+  const channel = supabase
+    .channel(`orders-${user.id}`)
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "orders",
+        filter: `user_id=eq.${user.id}`,
+      },
+      (payload) => {
+        console.log("ORDER REALTIME:", payload);
+
+        setOrders((prev) => {
+          const order = payload.new as Order;
+
+          if (payload.eventType === "INSERT") {
+            return [order, ...prev];
+          }
+
+          if (payload.eventType === "UPDATE") {
+            return prev.map((o) =>
+              o.id === order.id ? order : o
+            );
+          }
+
+          if (payload.eventType === "DELETE") {
+            return prev.filter(
+              (o) => o.id !== payload.old.id
+            );
+          }
+
+          return prev;
+        });
+      }
+    )
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}, [user]);
 
   useFocusEffect(
     useCallback(() => {
@@ -102,3 +144,5 @@ export default function OrdersScreen() {
     </View>
   );
 }
+
+

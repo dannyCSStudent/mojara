@@ -61,7 +61,7 @@ def list_orders_endpoint(
 ):
     jwt = user["_jwt"]
     user_id = user.get("sub")
-    
+
     if not user_id:
         raise HTTPException(status_code=401, detail="Invalid auth token")
 
@@ -71,12 +71,11 @@ def list_orders_endpoint(
             return get_orders_for_vendor(jwt=jwt, vendor_id=vendor_id)
 
         return get_orders_for_user(jwt=jwt, user_id=user_id)
-    
+
     except HTTPException:
-        raise  # pass through cleanly
-        
+        raise
+
     except Exception as e:
-        # 🔥 THIS IS WHAT YOU WERE MISSING
         print("❌ list_orders_endpoint error:", repr(e))
         raise HTTPException(
             status_code=500,
@@ -84,17 +83,25 @@ def list_orders_endpoint(
         )
 
 
-
 # ==========================================================
 # 🔍 ORDER DETAILS
 # ==========================================================
+
+@router.get("/orders/me")
+def get_my_orders(user=Depends(get_current_user)):
+    return get_orders_for_user(
+        user_id=user["sub"],
+        jwt=user["_jwt"],
+    )
+
+
 
 @router.get(
     "/orders/{order_id}",
     response_model=OrderOut,
 )
 def get_order_endpoint(
-    order_id: str,
+    order_id: UUID,
     user=Depends(get_current_user),
 ):
     return get_order_by_id(
@@ -103,22 +110,45 @@ def get_order_endpoint(
     )
 
 
+
 # ==========================================================
 # ✅ CONFIRM ORDER (VENDOR)
 # ==========================================================
 
-@router.post(
-    "/orders/{order_id}/confirm",
-    response_model=OrderConfirmOut,
-)
+@router.post("/orders/{order_id}/confirm", response_model=OrderConfirmOut)
 def confirm_order_endpoint(
     order_id: str,
     user=Depends(get_current_user),
 ):
-    return confirm_order(
-        jwt=user["_jwt"],
-        order_id=order_id,
-    )
+    jwt = user["_jwt"]
+    user_id = user.get("sub")
+
+    vendor_id = get_vendor_id_for_user(jwt, user_id)
+
+    try:
+        return confirm_order(
+            jwt=jwt,
+            order_id=order_id,
+            vendor_id=vendor_id,
+        )
+
+    except HTTPException:
+        raise
+
+    except Exception as e:
+        msg = str(e)
+
+        if "Invalid order status transition" in msg:
+            raise HTTPException(
+                status_code=409,
+                detail="Order cannot be confirmed in its current state",
+            )
+
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to confirm order",
+        )
+
 
 
 # ==========================================================
@@ -133,7 +163,31 @@ def cancel_order_endpoint(
     order_id: str,
     user=Depends(get_current_user),
 ):
-    return cancel_order(
-        jwt=user["_jwt"],
-        order_id=order_id,
-    )
+    jwt = user["_jwt"]
+    user_id = user.get("sub")
+
+    vendor_id = get_vendor_id_for_user(jwt, user_id)
+
+    try:
+        return cancel_order(
+            jwt=jwt,
+            order_id=order_id,
+            vendor_id=vendor_id,
+        )
+
+    except HTTPException:
+        raise
+
+    except Exception as e:
+        msg = str(e)
+
+        if "Invalid order status transition" in msg:
+            raise HTTPException(
+                status_code=409,
+                detail="Order cannot be canceled in its current state",
+            )
+
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to cancel order",
+        )

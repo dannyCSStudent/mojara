@@ -1,5 +1,4 @@
 import { ENV } from "../config/env";
-import { useAppStore } from "../store/useAppStore";
 
 type HttpMethod = "GET" | "POST" | "PUT" | "DELETE";
 
@@ -7,8 +6,22 @@ interface RequestOptions {
   method?: HttpMethod;
   body?: unknown;
   auth?: boolean;
-  signal?: AbortSignal; // ✅ ADD THIS
+  signal?: AbortSignal;
 }
+
+/* =========================
+   Auth token injection
+========================= */
+
+let authToken: string | null = null;
+
+export function setApiAuthToken(token: string | null) {
+  authToken = token;
+}
+
+/* =========================
+   API Request
+========================= */
 
 export async function apiRequest<T>(
   endpoint: string,
@@ -17,17 +30,15 @@ export async function apiRequest<T>(
   const {
     method = "GET",
     body,
-    signal, // ✅ DESTRUCTURE
+    signal,
   } = options;
 
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
   };
 
-  const token = useAppStore.getState().authToken;
-
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
+  if (authToken) {
+    headers.Authorization = `Bearer ${authToken}`;
   }
 
   const res = await fetch(`${ENV.API_URL}${endpoint}`, {
@@ -36,7 +47,7 @@ export async function apiRequest<T>(
     ...(method !== "GET" && body
       ? { body: JSON.stringify(body) }
       : {}),
-    signal, // ✅ PASS TO FETCH
+    signal,
   });
 
   if (!res.ok) {

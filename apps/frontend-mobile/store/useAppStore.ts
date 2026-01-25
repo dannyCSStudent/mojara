@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { fetchMarkets, Market } from "../api/markets";
 import { supabase } from "../lib/supabase";
+import { setApiAuthToken } from "../api/client";
 
 /* =========================
    Types
@@ -12,32 +13,26 @@ export type AppUser = {
 };
 
 interface AppState {
-  /* ---------- App lifecycle ---------- */
   isHydrated: boolean;
   setHydrated: (value: boolean) => void;
 
-  /* ---------- UI ---------- */
   theme: "light" | "dark" | "system";
   setTheme: (theme: AppState["theme"]) => void;
 
-  /* ---------- Auth ---------- */
   isAuthenticated: boolean;
   authToken: string | null;
   user: AppUser | null;
-
-  setAuthenticated: (value: boolean) => void;
-  setAuthToken: (token: string | null) => void;
-  setUser: (user: AppUser | null) => void;
 
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   restoreSession: () => Promise<void>;
 
-  /* ---------- Orders ---------- */
+  vendorId: string | null;
+  setVendorId: (id: string | null) => void;
+
   activeOrderId: string | null;
   setActiveOrderId: (id: string | null) => void;
 
-  /* ---------- Markets ---------- */
   markets: Market[];
   loadMarkets: () => Promise<void>;
 }
@@ -60,14 +55,15 @@ export const useAppStore = create<AppState>((set) => ({
   authToken: null,
   user: null,
 
-  setAuthenticated: (value) => set({ isAuthenticated: value }),
-  setAuthToken: (token) => set({ authToken: token }),
-  setUser: (user) => set({ user }),
+  /* ---------- Vendor ---------- */
+  vendorId: null,
+  setVendorId: (id) => set({ vendorId: id }),
 
   /* ---------- Orders ---------- */
   activeOrderId: null,
   setActiveOrderId: (id) => set({ activeOrderId: id }),
 
+  /* ---------- Auth actions ---------- */
   signIn: async (email, password) => {
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
@@ -76,46 +72,64 @@ export const useAppStore = create<AppState>((set) => ({
 
     if (error) throw error;
 
+    const token = data.session?.access_token ?? null;
+
     set({
       isAuthenticated: true,
-      authToken: data.session?.access_token ?? null,
+      authToken: token,
       user: data.user
         ? { id: data.user.id, email: data.user.email ?? "" }
         : null,
     });
+
+    setApiAuthToken(token);
   },
 
   signOut: async () => {
     await supabase.auth.signOut();
+
     set({
       isAuthenticated: false,
       authToken: null,
       user: null,
+      vendorId: null,
       markets: [],
       activeOrderId: null,
     });
+
+    setApiAuthToken(null);
   },
 
   restoreSession: async () => {
-    const { data } = await supabase.auth.getSession();
+  const { data } = await supabase.auth.getSession();
 
-    if (data.session) {
-      set({
-        isAuthenticated: true,
-        authToken: data.session.access_token,
-        user: data.session.user
-          ? {
-              id: data.session.user.id,
-              email: data.session.user.email ?? "",
-            }
-          : null,
-      });
-    }
-  },
+  if (!data.session) {
+    set({
+      isAuthenticated: false,
+      authToken: null,
+      user: null,
+    });
+    setApiAuthToken(null);
+    return;
+  }
+
+  const token = data.session.access_token;
+
+  set({
+    isAuthenticated: true, // 🚨 literal boolean ONLY
+    authToken: token,
+    user: {
+      id: data.session.user.id,
+      email: data.session.user.email ?? "",
+    },
+  });
+
+  setApiAuthToken(token);
+},
+
 
   /* ---------- Markets ---------- */
   markets: [],
-
   loadMarkets: async () => {
     const data = await fetchMarkets();
     set({ markets: data });

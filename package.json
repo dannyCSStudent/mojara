@@ -6,7 +6,10 @@
     "node": ">=18"
   },
   "scripts": {
-    "dev": "concurrently -k -n frontend,backend -c cyan,magenta \"pnpm --filter frontend-mobile dev\" \"pnpm --filter backend-fastapi dev\"",
+    "dev": "turbo run dev --filter=!frontend-mobile",
+    "dev:web": "turbo run dev --filter=frontend-mobile -- --web",
+    "dev:android": "pnpm --filter frontend-mobile android",
+    "dev:mobile": "pnpm --filter frontend-mobile dev:client",
     "build": "turbo run build",
     "lint": "turbo run lint",
     "check-types": "turbo run check-types",
@@ -17,11 +20,5 @@
     "prettier": "^3.7.4",
     "turbo": "^2.7.2",
     "typescript": "5.9.2"
-  },
-  "pnpm": {
-    "overrides": {
-      "react": "*",
-      "react-native": "*"
-    }
   }
 }

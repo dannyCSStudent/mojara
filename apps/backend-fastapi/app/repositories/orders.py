@@ -1,6 +1,6 @@
 from app.db import get_supabase_client
 from fastapi import HTTPException
-from postgrest.exceptions import APIError
+from postgrest import APIError
 import httpx
 
 
@@ -21,10 +21,12 @@ def get_orders_for_user(jwt: str, user_id: str):
             vendor_id,
             user_id,
             status,
+            total,
             created_at,
             order_items (
                 product_id,
                 quantity,
+                price,
                 products ( name )
             )
             """
@@ -51,10 +53,12 @@ def get_orders_for_vendor(jwt: str, vendor_id: str):
                 vendor_id,
                 user_id,
                 status,
+                total,
                 created_at,
                 order_items:order_items!order_items_order_id_fkey (
                     product_id,
                     quantity,
+                    price,
                     products ( name )
                 )
                 """
@@ -84,10 +88,12 @@ def get_order_by_id(jwt: str, order_id: str):
             vendor_id,
             user_id,
             status,
+            total,
             created_at,
             order_items (
                 product_id,
                 quantity,
+                price,
                 products ( name )
             )
             """
@@ -131,7 +137,7 @@ def get_vendor_id_for_user(jwt: str, user_id: str) -> str:
 
 def create_order(jwt, market_id, vendor_id, customer_id, items):
     supabase = get_supabase_client(jwt)
-
+    
     res = supabase.rpc(
         "create_order_atomic",
         {
@@ -148,30 +154,36 @@ def create_order(jwt, market_id, vendor_id, customer_id, items):
     return res.data
 
 
-def confirm_order(jwt: str, order_id: str):
+def confirm_order(jwt: str, order_id: str, vendor_id: str):
     supabase = get_supabase_client(jwt)
 
     res = supabase.rpc(
         "confirm_order_atomic",
-        {"p_order_id": order_id},
+        {
+            "p_order_id": order_id,
+            "p_vendor_id": vendor_id,
+        },
     ).execute()
 
     if not res.data:
-        raise HTTPException(400, "Order confirmation failed")
+        raise HTTPException(409, "Order cannot be confirmed")
 
     return res.data
 
 
-def cancel_order(jwt: str, order_id: str):
+def cancel_order(jwt: str, order_id: str, vendor_id: str):
     supabase = get_supabase_client(jwt)
 
     res = supabase.rpc(
         "cancel_order_atomic",
-        {"p_order_id": order_id},
+        {
+            "p_order_id": order_id,
+            "p_vendor_id": vendor_id,
+        },
     ).execute()
 
     if not res.data:
-        raise HTTPException(400, "Order cancellation failed")
+        raise HTTPException(409, "Order cannot be canceled")
 
     return res.data
 
@@ -191,6 +203,7 @@ def _normalize_order(order: dict):
         items.append({
             "product_id": i["product_id"],
             "quantity": i["quantity"],
+            "price": i["price"],
             "name": i.get("products", {}).get("name", ""),
         })
 

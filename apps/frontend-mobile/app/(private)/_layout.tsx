@@ -1,14 +1,5 @@
-
-
-import { Redirect, Slot } from "expo-router";
-import { useAppStore } from "../../store/useAppStore";
+import { Slot } from "expo-router";
 
 export default function PrivateLayout() {
-  const isAuthenticated = useAppStore((s) => s.isAuthenticated);
-
-  if (!isAuthenticated) {
-    return <Redirect href="/(public)" />;
-  }
-
-  return <Slot screenOptions={{ headerShown: false }} />;
+  return <Slot />;
 }

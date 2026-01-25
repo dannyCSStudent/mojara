@@ -11,7 +11,7 @@ from app.repositories.vendors import (
     update_vendor,
     delete_vendor,
 )
-
+from app.repositories.orders import get_vendor_id_for_user
 router = APIRouter(prefix="/vendors", tags=["vendors"])
 
 
@@ -87,3 +87,21 @@ def delete_vendor_route(
             status_code=404,
             detail="Vendor not found or not allowed",
         )
+
+
+@router.get("/vendors/me")
+def get_my_vendor(user=Depends(get_current_user)):
+    jwt = user["_jwt"]
+    user_id = user.get("sub")
+
+    if not user_id:
+        raise HTTPException(401, "Invalid auth token")
+
+    vendor_id = get_vendor_id_for_user(jwt, user_id)
+
+    if not vendor_id:
+        raise HTTPException(404, "Vendor not found")
+
+    return {
+        "vendor_id": vendor_id
+    }

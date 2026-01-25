@@ -56,6 +56,7 @@ def get_current_user(
         )
 
         # 🔑 IMPORTANT ADDITIONS
+        payload["id"] = payload["sub"]
         payload["_jwt"] = token
         payload["app_role"] = payload.get("role", "user")
 
