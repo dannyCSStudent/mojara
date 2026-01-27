@@ -11,7 +11,7 @@ export default function PrivateHome() {
   }, [loadMarkets]);
 
   return (
-    <Screen className="gap-4">
+    <Screen bg-danger className="gap-4">
       <AppText variant="title">Markets</AppText>
 
       {markets.length === 0 ? (

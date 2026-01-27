@@ -34,6 +34,11 @@ web-build/
 dist/
 build/
 
+# Expo native builds (managed workflow)
+apps/frontend-mobile/ios/
+apps/frontend-mobile/android/
+
+
 # Metro cache
 .metro-health-check*
 

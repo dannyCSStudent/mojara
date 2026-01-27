@@ -10,6 +10,7 @@ import { setApiAuthToken } from "../api/client";
 export type AppUser = {
   id: string;
   email: string;
+  app_role: "user" | "admin";
 };
 
 interface AppState {
@@ -65,25 +66,31 @@ export const useAppStore = create<AppState>((set) => ({
 
   /* ---------- Auth actions ---------- */
   signIn: async (email, password) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
 
-    if (error) throw error;
+  if (error) throw error;
 
-    const token = data.session?.access_token ?? null;
+  const token = data.session?.access_token ?? null;
+  const user = data.user;
 
-    set({
-      isAuthenticated: true,
-      authToken: token,
-      user: data.user
-        ? { id: data.user.id, email: data.user.email ?? "" }
-        : null,
-    });
+  set({
+    isAuthenticated: true,
+    authToken: token,
+    user: user
+      ? {
+          id: user.id,
+          email: user.email ?? "",
+          app_role: user.app_metadata?.role ?? "user",
+        }
+      : null,
+  });
 
-    setApiAuthToken(token);
-  },
+  setApiAuthToken(token);
+},
+
 
   signOut: async () => {
     await supabase.auth.signOut();
@@ -113,19 +120,22 @@ export const useAppStore = create<AppState>((set) => ({
     return;
   }
 
+  const { user } = data.session;
   const token = data.session.access_token;
 
   set({
-    isAuthenticated: true, // 🚨 literal boolean ONLY
+    isAuthenticated: true,
     authToken: token,
     user: {
-      id: data.session.user.id,
-      email: data.session.user.email ?? "",
+      id: user.id,
+      email: user.email ?? "",
+      app_role: user.app_metadata?.role ?? "user",
     },
   });
 
   setApiAuthToken(token);
 },
+
 
 
   /* ---------- Markets ---------- */
