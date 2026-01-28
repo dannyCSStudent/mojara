@@ -40,7 +40,6 @@ export async function apiRequest<T>(
   if (authToken) {
     headers.Authorization = `Bearer ${authToken}`;
   }
-
   const res = await fetch(`${ENV.API_URL}${endpoint}`, {
     method,
     headers,
@@ -49,7 +48,6 @@ export async function apiRequest<T>(
       : {}),
     signal,
   });
-
   if (!res.ok) {
     const error = await res.text();
     throw new Error(error || "API request failed");

@@ -22,6 +22,17 @@ export default function TabLayout() {
           ),
         }}
       />
+      <Tabs.Screen
+        name="prices"
+        options={{
+          title: "Prices",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="cash" size={size} color={color} />
+          ),
+        }}
+      />
     </Tabs>
+    
+    
   );
 }

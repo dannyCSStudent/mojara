@@ -1,8 +1,11 @@
 # routers/prices.py
 from fastapi import APIRouter, Depends, Query
-from app.db import get_db
+from app.db import get_supabase_client
 from app.auth import get_current_user
-from app.schemas.prices import PriceSignalIn
+from app.schemas.prices import PriceSignalIn, ActivePriceAgreementOut
+from app.repositories.prices import get_active_price_agreements
+from app.auth import get_current_jwt
+from typing import List
 
 router = APIRouter(prefix="/prices", tags=["Prices"])
 
@@ -10,7 +13,7 @@ router = APIRouter(prefix="/prices", tags=["Prices"])
 @router.get("/current")
 def get_current_prices(
     market_id: str = Query(...),
-    db=Depends(get_db),
+    db=Depends(get_supabase_client),
     user=Depends(get_current_user),
 ):
     rows = db.execute(
@@ -39,7 +42,7 @@ def get_current_prices(
 @router.get("/explain")
 def explain_prices(
     market_id: str = Query(...),
-    db=Depends(get_db),
+    db=Depends(get_supabase_client),
     user=Depends(get_current_user),
 ):
     return db.execute(
@@ -55,8 +58,9 @@ def explain_prices(
 
 @router.post("/signal")
 def submit_price_signal(
+
     payload: PriceSignalIn,
-    db=Depends(get_db),
+    db=Depends(get_supabase_client),
     user=Depends(get_current_user),
 ):
     db.execute(
@@ -89,3 +93,12 @@ def submit_price_signal(
     )
 
     return {"status": "signal_submitted"}
+
+
+@router.get(
+    "/active",
+    response_model=List[ActivePriceAgreementOut],
+    summary="Get active locked price agreements"
+)
+def read_active_prices(jwt: str = Depends(get_current_jwt)):
+    return get_active_price_agreements(jwt)

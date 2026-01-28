@@ -1,5 +1,7 @@
 # app/schemas/prices.py
 from pydantic import BaseModel, Field
+from datetime import datetime
+from uuid import UUID
 
 
 class PriceSignalIn(BaseModel):
@@ -8,11 +10,16 @@ class PriceSignalIn(BaseModel):
     price_per_kg: float = Field(..., gt=0)
 
 
-# class PriceAgreementOut(BaseModel):
-#     market_id: str
-#     market_name: str
-#     size_band: str
-#     reference_price: float
-#     confidence_score: float
-#     sample_count: int
-#     valid_until: str
+class ActivePriceAgreementOut(BaseModel):
+    market_id: UUID
+    size_band_id: UUID
+    reference_price: float
+    confidence_score: float
+    sample_count: int
+    valid_from: datetime
+    valid_until: datetime
+
+
+class PriceLockOut(BaseModel):
+    id: UUID
+    status: str

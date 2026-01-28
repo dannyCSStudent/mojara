@@ -74,6 +74,15 @@ ROLE_LEVELS = {
     "admin": 2,
 }
 
+def get_current_jwt(
+    user: dict = Depends(get_current_user),
+) -> str:
+    """
+    Returns the raw JWT for Supabase RLS calls
+    """
+    return user["_jwt"]
+
+
 def require_role(required_role: str):
     def dependency(user=Depends(get_current_user)):
         role = user.get("app_metadata", {}).get("role")

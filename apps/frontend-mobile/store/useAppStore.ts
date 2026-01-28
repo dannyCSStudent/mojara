@@ -74,8 +74,9 @@ export const useAppStore = create<AppState>((set) => ({
   if (error) throw error;
 
   const token = data.session?.access_token ?? null;
+  console.log("SIGN IN TOKEN:", token);
   const user = data.user;
-
+  
   set({
     isAuthenticated: true,
     authToken: token,
@@ -122,6 +123,7 @@ export const useAppStore = create<AppState>((set) => ({
 
   const { user } = data.session;
   const token = data.session.access_token;
+  console.log("RESTORE SESSION TOKEN:", token);
 
   set({
     isAuthenticated: true,
@@ -132,7 +134,7 @@ export const useAppStore = create<AppState>((set) => ({
       app_role: user.app_metadata?.role ?? "user",
     },
   });
-
+  
   setApiAuthToken(token);
 },
 
