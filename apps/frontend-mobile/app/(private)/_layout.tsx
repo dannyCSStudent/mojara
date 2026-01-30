@@ -1,9 +1,22 @@
-import { Tabs } from "expo-router";
+import { Redirect, Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { useAppStore } from "../../store/useAppStore";
 
-export default function TabLayout() {
+export default function PrivateLayout() {
+  const isAuthenticated = useAppStore((s) => s.isAuthenticated);
+  const isHydrated = useAppStore((s) => s.isHydrated);
+
+  if (!isHydrated) {
+    return null;
+  }
+
+  if (!isAuthenticated) {
+    return <Redirect href="/(public)/login" />;
+  }
+
   return (
     <Tabs screenOptions={{ headerShown: false }}>
+      {/* ✅ Visible tabs */}
       <Tabs.Screen
         name="index"
         options={{
@@ -13,6 +26,7 @@ export default function TabLayout() {
           ),
         }}
       />
+
       <Tabs.Screen
         name="orders"
         options={{
@@ -22,17 +36,24 @@ export default function TabLayout() {
           ),
         }}
       />
+
+      {/* 🚫 Hidden routes */}
+      <Tabs.Screen name="checkout" options={{ href: null }} />
+
+      <Tabs.Screen name="markets" options={{ href: null }} />
+      <Tabs.Screen name="markets/[marketId]" options={{ href: null }} />
       <Tabs.Screen
-        name="prices"
-        options={{
-          title: "Prices",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="cash" size={size} color={color} />
-          ),
-        }}
+        name="markets/vendors/[vendorId]"
+        options={{ href: null }}
       />
+
+      <Tabs.Screen name="orders/[orderId]" options={{ href: null }} />
+
+      <Tabs.Screen name="vendor" options={{ href: null }} />
+      <Tabs.Screen name="vendor/orders" options={{ href: null }} />
+
+      <Tabs.Screen name="admin" options={{ href: null }} />
+      <Tabs.Screen name="admin/prices" options={{ href: null }} />
     </Tabs>
-    
-    
   );
 }

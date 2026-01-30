@@ -11,13 +11,21 @@ export default function AdminPricesScreen() {
   const [prices, setPrices] = useState<AdminPriceAgreement[]>([]);
   const [loading, setLoading] = useState(true);
   const [lockingId, setLockingId] = useState<string | null>(null);
+  const [forbidden, setForbidden] = useState(false);
 
   async function load() {
     try {
       setLoading(true);
-      console.log("Loading admin prices");
+      setForbidden(false);
+
       const data = await fetchAdminPrices();
       setPrices(data);
+    } catch (err: any) {
+      if (err.message === "FORBIDDEN") {
+        setForbidden(true);
+      } else {
+        console.error("Failed to load admin prices:", err);
+      }
     } finally {
       setLoading(false);
     }
@@ -34,6 +42,12 @@ export default function AdminPricesScreen() {
           p.id === id ? { ...p, status: "locked" } : p
         )
       );
+    } catch (err: any) {
+      if (err.message === "FORBIDDEN") {
+        setForbidden(true);
+      } else {
+        console.error("Failed to lock price agreement:", err);
+      }
     } finally {
       setLockingId(null);
     }
@@ -42,6 +56,18 @@ export default function AdminPricesScreen() {
   useEffect(() => {
     load();
   }, []);
+
+  /* ---------- Permission guard ---------- */
+  if (forbidden) {
+    return (
+      <Screen>
+        <AppText variant="headline">Access denied</AppText>
+        <AppText variant="muted" className="mt-2">
+          You do not have permission to view this page.
+        </AppText>
+      </Screen>
+    );
+  }
 
   if (loading) {
     return (

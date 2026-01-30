@@ -13,14 +13,30 @@ export type AdminPriceAgreement = {
   valid_until: string;
 };
 
-
-export function fetchAdminPrices() {
-  return apiRequest<AdminPriceAgreement[]>("/admin/prices");
+function handleForbidden(err: any): never {
+  if (err?.response?.status === 403) {
+    throw new Error("FORBIDDEN");
+  }
+  throw err;
 }
 
-export function lockPriceAgreement(id: string) {
-  console.log(`Locking price agreement with id: ${id}`);
-  return apiRequest<void>(`/admin/prices/${id}/lock`, {
-    method: "POST",
-  });
+
+export async function fetchAdminPrices(): Promise<AdminPriceAgreement[]> {
+  try {
+    return await apiRequest<AdminPriceAgreement[]>("/admin/prices");
+  } catch (err) {
+    handleForbidden(err);
+  }
 }
+
+
+export async function lockPriceAgreement(id: string): Promise<void> {
+  try {
+    return await apiRequest<void>(`/admin/prices/${id}/lock`, {
+      method: "POST",
+    });
+  } catch (err) {
+    handleForbidden(err);
+  }
+}
+

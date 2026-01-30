@@ -26,7 +26,7 @@ def get_orders_for_user(jwt: str, user_id: str):
             order_items (
                 product_id,
                 quantity,
-                price,
+                unit_price,
                 products ( name )
             )
             """
@@ -58,8 +58,10 @@ def get_orders_for_vendor(jwt: str, vendor_id: str):
                 order_items:order_items!order_items_order_id_fkey (
                     product_id,
                     quantity,
-                    price,
-                    products ( name )
+                    products ( 
+                        name,
+                        price
+                    )
                 )
                 """
             )
@@ -79,30 +81,36 @@ def get_order_by_id(jwt: str, order_id: str):
     supabase = get_supabase_client(jwt)
 
     res = (
-        supabase
-        .table("orders")
-        .select(
-            """
+    supabase
+    .table("orders")
+    .select(
+        """
+        id,
+        market_id,
+        vendor_id,
+        user_id,
+        status,
+        total,
+        created_at,
+        order_items (
+            product_id,
+            quantity,
+            unit_price,
+            line_total,
+            products ( name )
+        ),
+        refunds (
             id,
-            market_id,
-            vendor_id,
-            user_id,
-            status,
-            total,
-            created_at,
-            order_items (
-                product_id,
-                quantity,
-                price,
-                products ( name )
-            )
-            """
+            amount,
+            reason,
+            created_at
         )
-        .eq("id", order_id)
-        .single()
-        .execute()
+        """
     )
-
+    .eq("id", order_id)
+    .single()
+    .execute()
+    )
     if not res.data:
         raise HTTPException(404, "Order not found")
 
@@ -196,17 +204,59 @@ def _normalize_orders(rows):
     return [_normalize_order(row) for row in rows or []]
 
 
-def _normalize_order(order: dict):
-    items = []
-
-    for i in order.pop("order_items", []) or []:
-        items.append({
+def _normalize_order(order):
+    items = [
+        {
             "product_id": i["product_id"],
+            "name": i["products"]["name"],
             "quantity": i["quantity"],
-            "price": i["price"],
-            "name": i.get("products", {}).get("name", ""),
-        })
+            "unit_price": i["unit_price"],
+            "line_total": i.get("line_total")
+                or i["quantity"] * i["unit_price"],
+        }
+        for i in order.get("order_items", [])
+    ]
 
-    order["items"] = items
-    return order
+    refunds = [
+        {
+            "id": r["id"],
+            "amount": r["amount"],
+            "reason": r["reason"],
+            "created_at": r["created_at"],
+        }
+        for r in order.get("refunds", [])
+    ]
+
+    refunded_total = sum(r["amount"] for r in refunds)
+
+    return {
+        **order,
+        "items": items,
+        "refunds": refunds,
+        "refunded_total": refunded_total,
+    }
+
+
+
+
+# =========================
+# Refunds
+# =========================
+
+def refund_order(jwt: str, order_id: str, amount: float, reason: str):
+    supabase = get_supabase_client(jwt)
+
+    res = supabase.rpc(
+        "refund_order_atomic",
+        {
+            "p_order_id": order_id,
+            "p_amount": amount,
+            "p_reason": reason,
+        },
+    ).execute()
+
+    if not res.data:
+        raise HTTPException(409, "Refund failed")
+
+    return res.data
 
