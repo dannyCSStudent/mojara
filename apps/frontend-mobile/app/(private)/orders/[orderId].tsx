@@ -12,6 +12,7 @@ import { getOrder, cancelOrder } from "../../../api/orders";
 import { Order } from "../../../api/types";
 import { usePolling } from "../../../hooks/usePolling";
 import { issueRefund } from "../../../api/refunds";
+import { formatOrderEvent } from "../../../utils/orderEvents";
 
 export default function OrderDetailsScreen() {
   const { orderId } = useLocalSearchParams<{ orderId: string }>();
@@ -115,7 +116,11 @@ export default function OrderDetailsScreen() {
 
     try {
       setRefunding(true);
-      await issueRefund(order.id, amount, refundReason);
+      await issueRefund(order.id, {
+        amount,
+        reason: refundReason?.trim() || undefined,
+      });
+
       setRefundOpen(false);
       setRefundAmount("");
       setRefundReason("");
@@ -344,6 +349,13 @@ export default function OrderDetailsScreen() {
           </View>
         </View>
       )}
+      {order.events.map(event => (
+        <View key={event.id}>
+          <AppText>{formatOrderEvent(event)}</AppText>
+          <AppText>{new Date(event.created_at).toLocaleString()}</AppText>
+          {event.reason && <AppText>{event.reason}</AppText>}
+        </View>
+      ))}
     </Screen>
   );
 }

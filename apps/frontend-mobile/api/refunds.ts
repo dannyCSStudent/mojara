@@ -1,20 +1,15 @@
-import { supabase } from "../lib/supabase";
+import { apiRequest } from "./client";
+import { Order, IssueRefundPayload } from "./types";
 
-export async function issueRefund(
+export function issueRefund(
   orderId: string,
-  amount: number,
-  reason?: string
+  payload: IssueRefundPayload
 ) {
-  const { error } = await supabase.rpc(
-    "refund_order_atomic",
+  return apiRequest<Order>(
+    `/orders/${orderId}/refund`,
     {
-      p_order_id: orderId,
-      p_amount: amount,
-      p_reason: reason ?? null,
+      method: "POST",
+      body: payload,
     }
   );
-
-  if (error) {
-    throw new Error(error.message);
-  }
 }

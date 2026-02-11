@@ -1,6 +1,12 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routes import markets, vendors, products, orders, prices, admin_prices
+from app.routes import ( markets,
+                        vendors, 
+                        products, 
+                        orders, 
+                        prices, 
+                        admin_prices,
+                        notifications )
 
 app = FastAPI(title="Mojara API")
 
@@ -27,3 +33,4 @@ app.include_router(products.router)
 app.include_router(orders.router)
 app.include_router(prices.router)
 app.include_router(admin_prices.router, prefix="/admin", tags=["admin"])
+app.include_router(notifications.router)

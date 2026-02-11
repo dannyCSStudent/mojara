@@ -5,6 +5,7 @@ from app.schemas.orders import (
     CreateOrderPayload,
     OrderOut,
     OrderConfirmOut,
+    RefundPayload,
 )
 from app.repositories.orders import (
     create_order,
@@ -14,6 +15,7 @@ from app.repositories.orders import (
     get_orders_for_user,
     get_orders_for_vendor,
     get_vendor_id_for_user,
+    refund_order,
 )
 
 router = APIRouter(tags=["orders"])
@@ -96,19 +98,16 @@ def get_my_orders(user=Depends(get_current_user)):
 
 
 
-@router.get(
-    "/orders/{order_id}",
-    response_model=OrderOut,
-)
-def get_order_endpoint(
+@router.get("/orders/{order_id}", response_model=OrderOut)
+def get_order(
     order_id: UUID,
-    user=Depends(get_current_user),
+    user = Depends(get_current_user),
 ):
     return get_order_by_id(
         jwt=user["_jwt"],
-        order_id=order_id,
+        order_id=str(order_id),
+        user_id=user["sub"],
     )
-
 
 
 # ==========================================================
@@ -191,3 +190,23 @@ def cancel_order_endpoint(
             status_code=500,
             detail="Failed to cancel order",
         )
+
+
+@router.post("/orders/{order_id}/refund", response_model=OrderOut)
+def refund_order_route(
+    order_id: UUID,
+    payload: RefundPayload,
+    user = Depends(get_current_user),
+):
+    jwt = user.jwt
+
+    # vendor authorization check (already discussed earlier)
+    vendor_id = get_vendor_id_for_user(jwt, user.id)
+
+    return refund_order(
+        jwt=jwt,
+        order_id=str(order_id),
+        amount=payload.amount,
+        reason=payload.reason,
+    )
+

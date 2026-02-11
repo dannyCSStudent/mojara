@@ -7,6 +7,19 @@ export interface OrderItem {
   line_total: number;
 }
 
+export interface OrderEvent {
+  id: string;
+  type:
+    | "created"
+    | "confirmed"
+    | "canceled"
+    | "refunded_partial"
+    | "refunded_full";
+  amount?: number;
+  reason?: string;
+  created_at: string;
+}
+
 export interface Order {
   id: string;
   market_id: string;
@@ -17,11 +30,22 @@ export interface Order {
   items: OrderItem[];
   total: number;
   refunded_total: number;
-  refunds: {
-    id: string;
-    amount: number;
-    reason?: string;
-    created_at: string;
-  }[];
-  
+  refunds: Refund[];
+  events: OrderEvent[];
 }
+
+
+// types.ts
+
+export interface Refund {
+  id: string;
+  amount: number;
+  reason?: string;
+  created_at: string;
+}
+
+export interface IssueRefundPayload {
+  amount: number;
+  reason?: string;
+}
+

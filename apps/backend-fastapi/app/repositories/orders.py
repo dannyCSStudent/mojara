@@ -77,44 +77,66 @@ def get_orders_for_vendor(jwt: str, vendor_id: str):
     return _normalize_orders(res.data)
 
 
-def get_order_by_id(jwt: str, order_id: str):
+def get_order_by_id(jwt: str, order_id: str, user_id: str):
     supabase = get_supabase_client(jwt)
 
     res = (
-    supabase
-    .table("orders")
-    .select(
-        """
-        id,
-        market_id,
-        vendor_id,
-        user_id,
-        status,
-        total,
-        created_at,
-        order_items (
-            product_id,
-            quantity,
-            unit_price,
-            line_total,
-            products ( name )
-        ),
-        refunds (
+        supabase
+        .table("orders")
+        .select(
+            """
             id,
-            amount,
-            reason,
-            created_at
+            market_id,
+            vendor_id,
+            user_id,
+            status,
+            total,
+            created_at,
+            order_items (
+                product_id,
+                quantity,
+                unit_price,
+                line_total,
+                products ( name )
+            ),
+            refunds (
+                id,
+                amount,
+                reason,
+                created_at
+            ),
+            order_events (
+                id,
+                event,
+                amount,
+                reason,
+                created_at
+            )
+            """
         )
-        """
+        .eq("id", order_id)
+        .single()
+        .execute()
     )
-    .eq("id", order_id)
-    .single()
-    .execute()
-    )
+
     if not res.data:
         raise HTTPException(404, "Order not found")
 
-    return _normalize_order(res.data)
+    order = res.data
+
+    # ✅ Customer owns it
+    if order["user_id"] == user_id:
+        return _normalize_order(order)
+
+    # ✅ Vendor owns it
+    vendor_id = get_vendor_id_for_user(jwt, user_id)
+    if order["vendor_id"] == vendor_id:
+        return _normalize_order(order)
+
+    # 🚫 Nobody else
+    raise HTTPException(404, "Order not found")
+
+
 
 
 # =========================
@@ -229,14 +251,27 @@ def _normalize_order(order):
 
     refunded_total = sum(r["amount"] for r in refunds)
 
+    events = [
+        {
+            "id": e["id"],
+            "type": e["event"],
+            "amount": e["amount"],
+            "reason": e["reason"],
+            "created_at": e["created_at"],
+        }
+        for e in order.get("order_events", [])
+    ]
+
+    events.sort(key=lambda e: e["created_at"])
+
+
     return {
         **order,
         "items": items,
         "refunds": refunds,
         "refunded_total": refunded_total,
+        "events": events,
     }
-
-
 
 
 # =========================
@@ -260,3 +295,15 @@ def refund_order(jwt: str, order_id: str, amount: float, reason: str):
 
     return res.data
 
+
+
+# repositories/orders.py
+
+def assert_user_can_view_order(order: dict, user_id: str, vendor_id: str | None):
+    if order["user_id"] == user_id:
+        return  # customer owns it
+
+    if vendor_id and order["vendor_id"] == vendor_id:
+        return  # vendor owns it
+
+    raise HTTPException(403, "You are not allowed to view this order")

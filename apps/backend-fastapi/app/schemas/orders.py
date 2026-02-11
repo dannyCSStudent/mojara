@@ -41,6 +41,12 @@ class OrderItemOut(BaseModel):
 # Order Output
 # -------------------------
 
+class OrderEventOut(BaseModel):
+    id: UUID
+    type: str
+    amount: float | None
+    reason: str | None
+    created_at: datetime
 class RefundOut(BaseModel):
     id: UUID
     amount: float
@@ -63,6 +69,7 @@ class OrderOut(BaseModel):
 
     items: List[OrderItemOut]
     refunds: List[RefundOut]
+    events: List[OrderEventOut]
 
     class Config:
         from_attributes = True
@@ -78,4 +85,11 @@ class OrderConfirmOut(BaseModel):
     created_at: datetime
 
 
+# -------------------------
+# Refund (input)
+# -------------------------
+
+class RefundPayload(BaseModel):
+    amount: float = Field(..., gt=0)
+    reason: str | None = None
 
