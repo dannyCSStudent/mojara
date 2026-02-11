@@ -37,6 +37,17 @@ export default function PrivateLayout() {
         }}
       />
 
+      <Tabs.Screen
+        name="notifications"
+        options={{
+          title: "Alerts",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="notifications-outline" size={size} color={color} />
+          ),
+        }}
+      />
+
+
       {/* 🚫 Hidden routes */}
       <Tabs.Screen name="checkout" options={{ href: null }} />
 

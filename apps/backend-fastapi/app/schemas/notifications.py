@@ -30,3 +30,19 @@ class NotificationSubscriptionOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+# -------------------------
+# Notification Output
+# -------------------------
+
+class NotificationOut(BaseModel):
+    id: UUID
+    event_type: str
+    title: str
+    body: str
+    read_at: datetime | None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True

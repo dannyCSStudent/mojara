@@ -1,6 +1,6 @@
 import { ENV } from "../config/env";
 
-type HttpMethod = "GET" | "POST" | "PUT" | "DELETE";
+type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
 
 interface RequestOptions {
   method?: HttpMethod;
