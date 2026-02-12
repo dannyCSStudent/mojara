@@ -13,4 +13,18 @@ async def mark_event_processed(db, event_id):
         update price_events
         set processed_at = now()
         where id = $1
+        and processed_at is null
+
     """, event_id)
+
+
+async def mark_events_processed_bulk(db, event_ids):
+    if not event_ids:
+        return
+
+    await db.execute("""
+        update price_events
+        set processed_at = now()
+        where id = any($1)
+    """, event_ids)
+

@@ -1,10 +1,28 @@
 import { Redirect, Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAppStore } from "../../store/useAppStore";
+import { useEffect } from "react";
+import { fetchUnreadCount } from "../../api/notifications";
+
 
 export default function PrivateLayout() {
   const isAuthenticated = useAppStore((s) => s.isAuthenticated);
   const isHydrated = useAppStore((s) => s.isHydrated);
+  const unreadCount = useAppStore((s) => s.unreadCount);
+  const setUnreadCount = useAppStore((s) => s.setUnreadCount);
+
+  useEffect(() => {
+  async function loadUnread() {
+    try {
+      const count = await fetchUnreadCount();
+      setUnreadCount(count);
+    } catch (err) {
+      console.error("Failed to load unread count", err);
+    }
+  }
+
+  loadUnread();
+  }, [setUnreadCount]);
 
   if (!isHydrated) {
     return null;
@@ -41,11 +59,13 @@ export default function PrivateLayout() {
         name="notifications"
         options={{
           title: "Alerts",
+          tabBarBadge: unreadCount > 0 ? unreadCount : undefined,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="notifications-outline" size={size} color={color} />
           ),
         }}
       />
+
 
 
       {/* 🚫 Hidden routes */}

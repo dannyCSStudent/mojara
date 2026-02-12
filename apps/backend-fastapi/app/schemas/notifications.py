@@ -5,14 +5,23 @@ from typing import Literal
 
 
 # -------------------------
+# Allowed event types
+# -------------------------
+
+EventType = Literal[
+    "price_increase",
+    "price_decrease",
+]
+
+
+# -------------------------
 # Input
 # -------------------------
 
 class NotificationSubscriptionIn(BaseModel):
-    market_id: UUID
-    event_type: str
-    min_severity: int = Field(1, ge=1, le=5)
-    channel: Literal["whatsapp"]  # future-proof
+    vendor_id: UUID
+    event_type: EventType
+    channel: Literal["push", "whatsapp"] = "push"
 
 
 # -------------------------
@@ -22,10 +31,10 @@ class NotificationSubscriptionIn(BaseModel):
 class NotificationSubscriptionOut(BaseModel):
     id: UUID
     user_id: UUID
-    market_id: UUID
-    event_type: str
-    min_severity: int
+    vendor_id: UUID
+    event_type: EventType
     channel: str
+    active: bool
     created_at: datetime
 
     class Config:
@@ -38,7 +47,7 @@ class NotificationSubscriptionOut(BaseModel):
 
 class NotificationOut(BaseModel):
     id: UUID
-    event_type: str
+    event_type: EventType
     title: str
     body: str
     read_at: datetime | None

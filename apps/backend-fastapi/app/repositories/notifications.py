@@ -125,3 +125,18 @@ def mark_notification_read(jwt: str, notification_id: str, user_id: str):
         .execute()
 
     return True
+
+
+def get_unread_count(jwt: str, user_id: str):
+    supabase = get_supabase_client(jwt)
+
+    res = (
+        supabase
+        .table("notifications")
+        .select("id", count="exact")
+        .eq("user_id", user_id)
+        .is_("read_at", None)
+        .execute()
+    )
+
+    return res.count or 0

@@ -1,17 +1,37 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { View, Pressable } from "react-native";
 import { Screen, AppText } from "../../components";
 import {
   fetchNotifications,
   markNotificationRead,
   Notification,
+  fetchUnreadCount
 } from "../../api/notifications";
+import { useFocusEffect } from "expo-router";
+import { useAppStore } from "../../store/useAppStore";
+
 
 export default function NotificationsScreen() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [forbidden, setForbidden] = useState(false);
   const [markingId, setMarkingId] = useState<string | null>(null);
+  const setUnreadCount = useAppStore((s) => s.setUnreadCount);
+
+  const refreshUnread = useCallback(async () => {
+    try {
+      const count = await fetchUnreadCount();
+      setUnreadCount(count);
+    } catch (err) {
+      console.error("Failed to refresh unread count", err);
+    }
+  }, [setUnreadCount]);
+
+  useFocusEffect(
+  useCallback(() => {
+    refreshUnread();
+  }, [refreshUnread])
+);
 
   async function load() {
     try {
@@ -42,6 +62,8 @@ export default function NotificationsScreen() {
           n.id === id ? { ...n, read_at: new Date().toISOString() } : n
         )
       );
+      await refreshUnread();
+
     } catch (err) {
       console.error("Failed to mark notification read:", err);
     } finally {

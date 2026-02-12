@@ -53,5 +53,6 @@ export async function apiRequest<T>(
     throw new Error(error || "API request failed");
   }
   
-  return res.json();
+  return (await res.json()) as T;
+
 }

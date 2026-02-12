@@ -14,12 +14,15 @@ export type AppUser = {
 };
 
 interface AppState {
+  /* ---------- App lifecycle ---------- */
   isHydrated: boolean;
   setHydrated: (value: boolean) => void;
 
+  /* ---------- UI ---------- */
   theme: "light" | "dark" | "system";
   setTheme: (theme: AppState["theme"]) => void;
 
+  /* ---------- Auth ---------- */
   isAuthenticated: boolean;
   authToken: string | null;
   user: AppUser | null;
@@ -28,14 +31,23 @@ interface AppState {
   signOut: () => Promise<void>;
   restoreSession: () => Promise<void>;
 
+  /* ---------- Vendor ---------- */
   vendorId: string | null;
   setVendorId: (id: string | null) => void;
 
+  /* ---------- Orders ---------- */
   activeOrderId: string | null;
   setActiveOrderId: (id: string | null) => void;
 
+  /* ---------- Markets ---------- */
   markets: Market[];
   loadMarkets: () => Promise<void>;
+
+  /* ---------- Notifications ---------- */
+  unreadCount: number;
+  setUnreadCount: (count: number) => void;
+  initNotificationRealtime: () => void;
+  
 }
 
 /* =========================
@@ -64,34 +76,38 @@ export const useAppStore = create<AppState>((set) => ({
   activeOrderId: null,
   setActiveOrderId: (id) => set({ activeOrderId: id }),
 
+  /* ---------- Notifications ---------- */
+  unreadCount: 0,
+  setUnreadCount: (count) => set({ unreadCount: count }),
+
   /* ---------- Auth actions ---------- */
   signIn: async (email, password) => {
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
 
-  if (error) throw error;
+    if (error) throw error;
 
-  const token = data.session?.access_token ?? null;
-  console.log("SIGN IN TOKEN:", token);
-  const user = data.user;
-  
-  set({
-    isAuthenticated: true,
-    authToken: token,
-    user: user
-      ? {
-          id: user.id,
-          email: user.email ?? "",
-          app_role: user.app_metadata?.role ?? "user",
-        }
-      : null,
-  });
+    const token = data.session?.access_token ?? null;
+    const user = data.user;
 
-  setApiAuthToken(token);
-},
+    set({
+      isAuthenticated: true,
+      authToken: token,
+      user: user
+        ? {
+            id: user.id,
+            email: user.email ?? "",
+            app_role: user.app_metadata?.role ?? "user",
+          }
+        : null,
+    });
+    useAppStore.getState().initNotificationRealtime();
 
+
+    setApiAuthToken(token);
+  },
 
   signOut: async () => {
     await supabase.auth.signOut();
@@ -103,42 +119,42 @@ export const useAppStore = create<AppState>((set) => ({
       vendorId: null,
       markets: [],
       activeOrderId: null,
+      unreadCount: 0, // reset badge
     });
 
     setApiAuthToken(null);
   },
 
   restoreSession: async () => {
-  const { data } = await supabase.auth.getSession();
+    const { data } = await supabase.auth.getSession();
 
-  if (!data.session) {
+    if (!data.session) {
+      set({
+        isAuthenticated: false,
+        authToken: null,
+        user: null,
+        unreadCount: 0,
+      });
+      setApiAuthToken(null);
+      return;
+    }
+
+    const { user } = data.session;
+    const token = data.session.access_token;
+
     set({
-      isAuthenticated: false,
-      authToken: null,
-      user: null,
+      isAuthenticated: true,
+      authToken: token,
+      user: {
+        id: user.id,
+        email: user.email ?? "",
+        app_role: user.app_metadata?.role ?? "user",
+      },
     });
-    setApiAuthToken(null);
-    return;
-  }
+    useAppStore.getState().initNotificationRealtime();
 
-  const { user } = data.session;
-  const token = data.session.access_token;
-  console.log("RESTORE SESSION TOKEN:", token);
-
-  set({
-    isAuthenticated: true,
-    authToken: token,
-    user: {
-      id: user.id,
-      email: user.email ?? "",
-      app_role: user.app_metadata?.role ?? "user",
-    },
-  });
-  
-  setApiAuthToken(token);
-},
-
-
+    setApiAuthToken(token);
+  },
 
   /* ---------- Markets ---------- */
   markets: [],
@@ -146,4 +162,29 @@ export const useAppStore = create<AppState>((set) => ({
     const data = await fetchMarkets();
     set({ markets: data });
   },
+
+  initNotificationRealtime: () => {
+  const user = useAppStore.getState().user;
+  if (!user) return;
+
+  supabase
+    .channel("notifications-channel")
+    .on(
+      "postgres_changes",
+      {
+        event: "INSERT",
+        schema: "public",
+        table: "notifications",
+        filter: `user_id=eq.${user.id}`,
+      },
+      () => {
+        // Increase unread count optimistically
+        set((state) => ({
+          unreadCount: state.unreadCount + 1,
+        }));
+      }
+    )
+    .subscribe();
+},
+
 }));

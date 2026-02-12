@@ -11,7 +11,8 @@ from app.repositories.notifications import (
     create_subscription,
     delete_subscription,
     get_user_notifications,
-    mark_notification_read
+    mark_notification_read,
+    get_unread_count
 )
 from app.auth import get_current_user
 
@@ -103,3 +104,13 @@ def mark_read(
 @router.get("/debug-auth")
 def debug_auth(user=Depends(get_current_user)):
     return user
+
+
+@router.get("/unread-count")
+def unread_count(user=Depends(get_current_user)):
+    return {
+        "count": get_unread_count(
+            jwt=user["_jwt"],
+            user_id=user["id"],
+        )
+    }
