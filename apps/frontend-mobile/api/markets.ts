@@ -4,6 +4,7 @@ export type Market = {
   id: string;
   name: string;
   location: string;
+  description?: string;
 };
 
 export function fetchMarkets() {

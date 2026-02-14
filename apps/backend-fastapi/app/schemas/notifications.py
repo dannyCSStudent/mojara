@@ -21,6 +21,7 @@ EventType = Literal[
 class NotificationSubscriptionIn(BaseModel):
     vendor_id: UUID
     event_type: EventType
+    min_severity: int = Field(1, ge=1, le=5)
     channel: Literal["push", "whatsapp"] = "push"
 
 
@@ -33,6 +34,7 @@ class NotificationSubscriptionOut(BaseModel):
     user_id: UUID
     vendor_id: UUID
     event_type: EventType
+    min_severity: int
     channel: str
     active: bool
     created_at: datetime

@@ -1,40 +1,60 @@
-import { Redirect, Tabs } from "expo-router";
+import { Redirect, Tabs, usePathname } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAppStore } from "../../store/useAppStore";
 import { useEffect } from "react";
 import { fetchUnreadCount } from "../../api/notifications";
 
-
 export default function PrivateLayout() {
+  const pathname = usePathname();
+
   const isAuthenticated = useAppStore((s) => s.isAuthenticated);
   const isHydrated = useAppStore((s) => s.isHydrated);
   const unreadCount = useAppStore((s) => s.unreadCount);
   const setUnreadCount = useAppStore((s) => s.setUnreadCount);
+  const hasCompletedOnboarding = useAppStore(
+    (s) => s.hasCompletedOnboarding
+  );
 
   useEffect(() => {
-  async function loadUnread() {
-    try {
-      const count = await fetchUnreadCount();
-      setUnreadCount(count);
-    } catch (err) {
-      console.error("Failed to load unread count", err);
+    if (!isHydrated || !isAuthenticated) return;
+
+    let mounted = true;
+
+    async function loadUnread() {
+      try {
+        const count = await fetchUnreadCount();
+        if (mounted) {
+          setUnreadCount(count);
+        }
+      } catch (err) {
+        console.error("Failed to load unread count", err);
+      }
     }
-  }
 
-  loadUnread();
-  }, [setUnreadCount]);
+    loadUnread();
 
-  if (!isHydrated) {
-    return null;
-  }
+    return () => {
+      mounted = false;
+    };
+  }, [isHydrated, isAuthenticated, setUnreadCount]);
+
+  if (!isHydrated) return null;
 
   if (!isAuthenticated) {
     return <Redirect href="/(public)/login" />;
   }
 
+  // ✅ Allow onboarding route to render itself
+  const isOnboardingRoute = pathname === "/onboarding";
+
+  if (!hasCompletedOnboarding && !isOnboardingRoute) {
+    return <Redirect href="/(private)/onboarding" />;
+  }
+
   return (
     <Tabs screenOptions={{ headerShown: false }}>
-      {/* ✅ Visible tabs */}
+      {/* Visible Tabs */}
+
       <Tabs.Screen
         name="index"
         options={{
@@ -61,28 +81,27 @@ export default function PrivateLayout() {
           title: "Alerts",
           tabBarBadge: unreadCount > 0 ? unreadCount : undefined,
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="notifications-outline" size={size} color={color} />
+            <Ionicons
+              name="notifications-outline"
+              size={size}
+              color={color}
+            />
           ),
         }}
       />
 
-
-
-      {/* 🚫 Hidden routes */}
+      {/* Hidden Routes */}
+      <Tabs.Screen name="onboarding" options={{ href: null }} />
       <Tabs.Screen name="checkout" options={{ href: null }} />
-
       <Tabs.Screen name="markets" options={{ href: null }} />
       <Tabs.Screen name="markets/[marketId]" options={{ href: null }} />
       <Tabs.Screen
         name="markets/vendors/[vendorId]"
         options={{ href: null }}
       />
-
       <Tabs.Screen name="orders/[orderId]" options={{ href: null }} />
-
       <Tabs.Screen name="vendor" options={{ href: null }} />
       <Tabs.Screen name="vendor/orders" options={{ href: null }} />
-
       <Tabs.Screen name="admin" options={{ href: null }} />
       <Tabs.Screen name="admin/prices" options={{ href: null }} />
     </Tabs>

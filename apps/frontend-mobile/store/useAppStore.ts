@@ -31,6 +31,9 @@ interface AppState {
   signOut: () => Promise<void>;
   restoreSession: () => Promise<void>;
 
+  signUp: (email: string, password: string) => Promise<void>;
+
+
   /* ---------- Vendor ---------- */
   vendorId: string | null;
   setVendorId: (id: string | null) => void;
@@ -47,14 +50,25 @@ interface AppState {
   unreadCount: number;
   setUnreadCount: (count: number) => void;
   initNotificationRealtime: () => void;
-  
+
+  notificationChannel: any | null;
+  notificationDedupeMap: Map<string, number>;
+  notificationWindowMs: number;
+
+
+     /* ---------- Onboarding ---------- */
+  hasCompletedOnboarding: boolean;
+  setHasCompletedOnboarding: (value: boolean) => void;
+
+
+
 }
 
 /* =========================
    Store
 ========================= */
 
-export const useAppStore = create<AppState>((set) => ({
+export const useAppStore = create<AppState>((set, get) => ({
   /* ---------- App lifecycle ---------- */
   isHydrated: false,
   setHydrated: (value) => set({ isHydrated: value }),
@@ -76,11 +90,29 @@ export const useAppStore = create<AppState>((set) => ({
   activeOrderId: null,
   setActiveOrderId: (id) => set({ activeOrderId: id }),
 
+  /* ---------- Markets ---------- */
+  markets: [],
+  loadMarkets: async () => {
+    const data = await fetchMarkets();
+    set({ markets: data });
+  },
+
   /* ---------- Notifications ---------- */
   unreadCount: 0,
   setUnreadCount: (count) => set({ unreadCount: count }),
 
+  notificationChannel: null,
+  notificationDedupeMap: new Map(),
+  notificationWindowMs: 5000,
+
+    /* ---------- Onboarding ---------- */
+  hasCompletedOnboarding: false,
+  setHasCompletedOnboarding: (value) =>
+    set({ hasCompletedOnboarding: value }),
+
+
   /* ---------- Auth actions ---------- */
+
   signIn: async (email, password) => {
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
@@ -102,14 +134,21 @@ export const useAppStore = create<AppState>((set) => ({
             app_role: user.app_metadata?.role ?? "user",
           }
         : null,
+      hasCompletedOnboarding: false, // 🔥 until we load real profile flag
     });
-    useAppStore.getState().initNotificationRealtime();
 
 
     setApiAuthToken(token);
+    get().initNotificationRealtime();
   },
 
   signOut: async () => {
+    const { notificationChannel } = get();
+
+    if (notificationChannel) {
+      await supabase.removeChannel(notificationChannel);
+    }
+
     await supabase.auth.signOut();
 
     set({
@@ -119,8 +158,12 @@ export const useAppStore = create<AppState>((set) => ({
       vendorId: null,
       markets: [],
       activeOrderId: null,
-      unreadCount: 0, // reset badge
+      unreadCount: 0,
+      notificationChannel: null,
+      notificationDedupeMap: new Map(),
+      hasCompletedOnboarding: false, // 🔥 reset
     });
+
 
     setApiAuthToken(null);
   },
@@ -150,41 +193,96 @@ export const useAppStore = create<AppState>((set) => ({
         email: user.email ?? "",
         app_role: user.app_metadata?.role ?? "user",
       },
+      hasCompletedOnboarding: false, // 🔥 temporary until backend-driven
     });
-    useAppStore.getState().initNotificationRealtime();
+
 
     setApiAuthToken(token);
+    get().initNotificationRealtime();
   },
 
-  /* ---------- Markets ---------- */
-  markets: [],
-  loadMarkets: async () => {
-    const data = await fetchMarkets();
-    set({ markets: data });
-  },
+  signUp: async (email, password) => {
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+  });
 
-  initNotificationRealtime: () => {
-  const user = useAppStore.getState().user;
-  if (!user) return;
+  if (error) throw error;
 
-  supabase
-    .channel("notifications-channel")
-    .on(
-      "postgres_changes",
-      {
-        event: "INSERT",
-        schema: "public",
-        table: "notifications",
-        filter: `user_id=eq.${user.id}`,
-      },
-      () => {
-        // Increase unread count optimistically
-        set((state) => ({
-          unreadCount: state.unreadCount + 1,
-        }));
-      }
-    )
-    .subscribe();
+  // Optional: auto-login if session returned
+  if (data.session) {
+    const token = data.session.access_token;
+    const user = data.user;
+
+    set({
+      isAuthenticated: true,
+      authToken: token,
+      user: user
+        ? {
+            id: user.id,
+            email: user.email ?? "",
+            app_role: user.app_metadata?.role ?? "user",
+          }
+        : null,
+    });
+
+    setApiAuthToken(token);
+    get().initNotificationRealtime();
+  }
 },
 
+  /* ---------- Realtime Notifications ---------- */
+
+  initNotificationRealtime: () => {
+    const state = get();
+    const user = state.user;
+
+    if (!user) return;
+
+    // Prevent duplicate subscriptions
+    if (state.notificationChannel) return;
+
+    const channel = supabase
+      .channel(`notifications-${user.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "notifications",
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          const now = Date.now();
+          const notificationId = payload.new.id;
+
+          const dedupeMap = new Map(state.notificationDedupeMap);
+          const lastSeen = dedupeMap.get(notificationId);
+
+          if (
+            lastSeen &&
+            now - lastSeen < state.notificationWindowMs
+          ) {
+            return; // suppress duplicate
+          }
+
+          dedupeMap.set(notificationId, now);
+
+          // Clean old entries
+          dedupeMap.forEach((time, key) => {
+            if (now - time > state.notificationWindowMs) {
+              dedupeMap.delete(key);
+            }
+          });
+
+          set((s) => ({
+            unreadCount: s.unreadCount + 1,
+            notificationDedupeMap: dedupeMap,
+          }));
+        }
+      )
+      .subscribe();
+
+    set({ notificationChannel: channel });
+  },
 }));

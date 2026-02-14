@@ -7,6 +7,7 @@ from datetime import datetime
 class MarketBase(BaseModel):
     name: str
     location: str
+    description: Optional[str] = None
 
 
 class MarketCreate(MarketBase):
