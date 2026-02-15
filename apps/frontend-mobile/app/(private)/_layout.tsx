@@ -90,6 +90,14 @@ export default function PrivateLayout() {
         }}
       />
 
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: "Profile",
+        }}
+      />
+
+
       {/* Hidden Routes */}
       <Tabs.Screen name="onboarding" options={{ href: null }} />
       <Tabs.Screen name="checkout" options={{ href: null }} />

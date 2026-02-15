@@ -202,15 +202,19 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   signUp: async (email, password) => {
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-  });
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+    });
 
-  if (error) throw error;
+    if (error) throw error;
 
-  // Optional: auto-login if session returned
-  if (data.session) {
+    // If email confirmation required
+    if (!data.session) {
+      return; // Let UI show confirmation message
+    }
+
+    // If auto-confirm enabled
     const token = data.session.access_token;
     const user = data.user;
 
@@ -228,8 +232,8 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     setApiAuthToken(token);
     get().initNotificationRealtime();
-  }
-},
+  },
+
 
   /* ---------- Realtime Notifications ---------- */
 

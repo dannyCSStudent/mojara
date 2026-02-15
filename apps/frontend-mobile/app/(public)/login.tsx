@@ -3,6 +3,7 @@ import { View, TextInput, Pressable, Alert } from "react-native";
 import { useAppStore } from "../../store/useAppStore";
 import { Screen } from "../../components/Screen";
 import { AppText } from "../../components/AppText";
+import { router } from "expo-router";
 
 export default function LoginScreen() {
   const signIn = useAppStore((s) => s.signIn);
@@ -85,6 +86,12 @@ export default function LoginScreen() {
             {loading ? "Signing In..." : "Sign In"}
           </AppText>
         </Pressable>
+        <Pressable onPress={() => router.replace("/signup")} className="mt-6">
+          <AppText variant="caption" className="text-center text-blue-600">
+            Don’t have an account? Sign Up
+          </AppText>
+        </Pressable>
+
       </View>
     </Screen>
   );

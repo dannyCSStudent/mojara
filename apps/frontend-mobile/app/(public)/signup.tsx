@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View, TextInput, Pressable } from "react-native";
+import { View, TextInput, Pressable, Alert} from "react-native";
 import { router } from "expo-router";
 import { Screen } from "../../components/Screen";
 import { AppText } from "../../components/AppText";
@@ -37,6 +37,10 @@ export default function SignupScreen() {
     try {
       setLoading(true);
       await signUp(email.trim(), password);
+      Alert.alert(
+        "Check your email",
+        "We sent you a confirmation link. Please verify your account before logging in."
+      );
 
       router.replace("/"); // redirect to root (auth guard will handle)
     } catch (err: any) {
