@@ -1,6 +1,7 @@
 import { useEffect } from "react";
-import { Slot } from "expo-router";
+import { Slot, router } from "expo-router";
 import { useAppStore } from "../store/useAppStore";
+import { supabase } from "../lib/supabase";
 import "../global.css";
 
 export default function RootLayout() {
@@ -13,6 +14,20 @@ export default function RootLayout() {
       .catch(console.error)
       .finally(() => setHydrated(true));
   }, [restoreSession, setHydrated]);
+
+  // ✅ Listen for password recovery events
+  useEffect(() => {
+    const { data: subscription } =
+      supabase.auth.onAuthStateChange((event) => {
+        if (event === "PASSWORD_RECOVERY") {
+          router.replace("/reset-password");
+        }
+      });
+
+    return () => {
+      subscription.subscription.unsubscribe();
+    };
+  }, []);
 
   if (!isHydrated) {
     return null;

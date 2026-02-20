@@ -1,29 +1,38 @@
 import { useState } from "react";
 import { View, TextInput, Pressable, Alert } from "react-native";
-import { useAppStore } from "../../store/useAppStore";
 import { Screen } from "../../components/Screen";
 import { AppText } from "../../components/AppText";
+import { supabase } from "../../lib/supabase";
 import { router } from "expo-router";
 
-export default function LoginScreen() {
-  const signIn = useAppStore((s) => s.signIn);
-
+export default function ForgotPasswordScreen() {
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  async function handleLogin() {
-    if (!email || !password) {
-      Alert.alert("Please enter email and password.");
+  async function handleReset() {
+    if (!email) {
+      Alert.alert("Please enter your email.");
       return;
     }
 
     try {
       setLoading(true);
-      await signIn(email, password);
+
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: "mojara://reset-password",
+      });
+
+      if (error) throw error;
+
+      Alert.alert(
+        "Check your email",
+        "We sent you a password reset link."
+      );
+
+      router.back();
     } catch (err) {
       console.error(err);
-      Alert.alert("Login failed. Please check your credentials.");
+      Alert.alert("Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -32,17 +41,15 @@ export default function LoginScreen() {
   return (
     <Screen>
       <View className="flex-1 justify-center px-6">
-        {/* Header */}
         <AppText variant="title" className="mb-2">
-          Welcome Back
+          Reset Password
         </AppText>
 
         <AppText variant="body" className="mb-8">
-          Sign in to continue to your markets.
+          Enter your email and we’ll send you a reset link.
         </AppText>
 
-        {/* Email */}
-        <View className="mb-4">
+        <View className="mb-6">
           <AppText variant="caption" className="mb-2">
             Email
           </AppText>
@@ -58,40 +65,17 @@ export default function LoginScreen() {
           />
         </View>
 
-        {/* Password */}
-        <View className="mb-6">
-          <AppText variant="caption" className="mb-2">
-            Password
-          </AppText>
-
-          <TextInput
-            className="rounded-2xl border border-gray-300 dark:border-neutral-700 px-4 py-4 text-base bg-gray-100 dark:bg-neutral-800 text-black dark:text-white"
-            placeholder="••••••••"
-            placeholderTextColor="#9CA3AF"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-          />
-        </View>
-
-        {/* Button */}
         <Pressable
-          onPress={handleLogin}
+          onPress={handleReset}
           disabled={loading}
           className={`rounded-2xl py-4 items-center ${
             loading ? "bg-gray-400" : "bg-blue-600"
           }`}
         >
           <AppText variant="subheading" className="text-white">
-            {loading ? "Signing In..." : "Sign In"}
+            {loading ? "Sending..." : "Send Reset Link"}
           </AppText>
         </Pressable>
-        <Pressable onPress={() => router.replace("/signup")} className="mt-6">
-          <AppText variant="caption" className="text-center text-blue-600">
-            Don’t have an account? Sign Up
-          </AppText>
-        </Pressable>
-
       </View>
     </Screen>
   );

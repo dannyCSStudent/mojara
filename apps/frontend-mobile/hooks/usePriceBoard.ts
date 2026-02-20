@@ -15,7 +15,7 @@ export function usePriceBoard(marketId: string) {
 
     setLoading(true)
     try {
-      const data = await fetchActivePrices(authToken)
+      const data = await fetchActivePrices()
       setPrices(data.filter((p) => p.market_id === marketId))
     } catch (err) {
       console.error("Failed to load prices", err)

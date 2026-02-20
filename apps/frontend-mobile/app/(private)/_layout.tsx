@@ -12,8 +12,9 @@ export default function PrivateLayout() {
   const unreadCount = useAppStore((s) => s.unreadCount);
   const setUnreadCount = useAppStore((s) => s.setUnreadCount);
   const hasCompletedOnboarding = useAppStore(
-    (s) => s.hasCompletedOnboarding
-  );
+  (s) => s.subscriptions.length > 0
+);
+
 
   useEffect(() => {
     if (!isHydrated || !isAuthenticated) return;
@@ -45,11 +46,11 @@ export default function PrivateLayout() {
   }
 
   // ✅ Allow onboarding route to render itself
-  const isOnboardingRoute = pathname === "/onboarding";
+ const isOnboardingRoute = pathname.includes("onboarding");
 
-  if (!hasCompletedOnboarding && !isOnboardingRoute) {
-    return <Redirect href="/(private)/onboarding" />;
-  }
+if (!hasCompletedOnboarding && !isOnboardingRoute) {
+  return <Redirect href="/(private)/onboarding" />;
+}
 
   return (
     <Tabs screenOptions={{ headerShown: false }}>
@@ -97,11 +98,12 @@ export default function PrivateLayout() {
         }}
       />
 
+      <Tabs.Screen name="markets/manage" options={{ href: null }} />
 
       {/* Hidden Routes */}
       <Tabs.Screen name="onboarding" options={{ href: null }} />
       <Tabs.Screen name="checkout" options={{ href: null }} />
-      <Tabs.Screen name="markets" options={{ href: null }} />
+      {/* <Tabs.Screen name="markets" options={{ href: null }} /> */}
       <Tabs.Screen name="markets/[marketId]" options={{ href: null }} />
       <Tabs.Screen
         name="markets/vendors/[vendorId]"

@@ -3,6 +3,7 @@
     "name": "frontend-mobile",
     "slug": "frontend-mobile",
     "version": "1.0.0",
+    "scheme": "mojara",
     "web": {
       "favicon": "./assets/favicon.png"
     },
@@ -28,13 +29,22 @@
       "bundleIdentifier": "com.anonymous.frontendmobile"
     },
     "android": {
-      "adaptiveIcon": {
-        "usesCleartextTraffic": true,
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
-      },
-      "package": "com.anonymous.frontendmobile"
-    },
+  "adaptiveIcon": {
+    "foregroundImage": "./assets/adaptive-icon.png",
+    "backgroundColor": "#ffffff"
+  },
+  "package": "com.anonymous.frontendmobile",
+  "intentFilters": [
+    {
+      "action": "VIEW",
+      "autoVerify": false,
+      "data": [
+        { "scheme": "mojara" }
+      ],
+      "category": ["BROWSABLE", "DEFAULT"]
+    }
+  ]
+},
     "extra": {
       "SUPABASE_URL": "https://mgltyvetcrvkedqpjsje.supabase.co",
       "SUPABASE_ANON_KEY": "sb_publishable_ya9RxzHUOzfEY6JXINn5WQ_J2mth-X_"

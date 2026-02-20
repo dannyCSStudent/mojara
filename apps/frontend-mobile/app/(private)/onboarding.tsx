@@ -9,15 +9,14 @@ import { useRouter } from "expo-router";
 import { useAppStore } from "../../store/useAppStore";
 import { AppText } from "../../components/AppText";
 import { Screen } from "../../components/Screen";
+import { supabase } from "../../lib/supabase";
 
 export default function OnboardingScreen() {
   const router = useRouter();
 
   const markets = useAppStore((s) => s.markets);
   const loadMarkets = useAppStore((s) => s.loadMarkets);
-  const setHasCompletedOnboarding = useAppStore(
-    (s) => s.setHasCompletedOnboarding
-  );
+  
 
   const [selectedMarkets, setSelectedMarkets] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
@@ -35,26 +34,38 @@ export default function OnboardingScreen() {
   }
 
   async function handleComplete() {
-    if (selectedMarkets.length === 0) {
-      Alert.alert("Please select at least one market.");
+  if (selectedMarkets.length === 0) {
+    Alert.alert("Please select at least one market.");
+    return;
+  }
+
+  try {
+    setLoading(true);
+
+    const user = useAppStore.getState().user;
+    if (!user) {
+      Alert.alert("User session not found.");
       return;
     }
 
-    try {
-      setLoading(true);
+    await supabase.from("market_subscriptions").insert(
+      selectedMarkets.map((marketId) => ({
+        user_id: user.id,
+        market_id: marketId,
+      }))
+    );
 
-      // TODO:
-      // await createBatchSubscriptions(selectedMarkets)
+    await useAppStore.getState().loadSubscriptions();
 
-      setHasCompletedOnboarding(true);
-      router.replace("/(private)");
-    } catch (err) {
-      console.error("Failed to complete onboarding", err);
-      Alert.alert("Something went wrong. Please try again.");
-    } finally {
-      setLoading(false);
-    }
+    router.replace("/(private)");
+  } catch (err) {
+    console.error("Failed to complete onboarding", err);
+    Alert.alert("Something went wrong. Please try again.");
+  } finally {
+    setLoading(false);
   }
+}
+
 
   return (
     <Screen>

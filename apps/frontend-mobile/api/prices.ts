@@ -5,15 +5,15 @@ import { apiRequest } from "./client";
    Types
 ========================= */
 
-export type ActivePriceAgreement = {
-  market_id: string;
-  size_band_id: string;
-  reference_price: number;
-  confidence_score: number;
-  sample_count: number;
-  valid_from: string;   // ISO datetime
-  valid_until: string; // ISO datetime
-};
+// export type ActivePriceAgreement = {
+//   market_id: string;
+//   size_band_id: string;
+//   reference_price: number;
+//   confidence_score: number;
+//   sample_count: number;
+//   valid_from: string;   // ISO datetime
+//   valid_until: string; // ISO datetime
+// };
 
 
 
@@ -32,7 +32,7 @@ export type ActivePrice = {
 ========================= */
 
 export function fetchActivePrices() {
-  return apiRequest<ActivePriceAgreement[]>(
+  return apiRequest<ActivePrice[]>(
     "/prices/active"
   );
 }

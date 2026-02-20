@@ -38,9 +38,8 @@ export default function MarketVendorsScreen() {
           <Pressable
             key={vendor.id}
             onPress={() =>
-              router.push(
-                `/(private)/markets/${marketId}/vendors/${vendor.id}`
-              )
+              router.push("/(private)/markets/manage")
+
             }
             className="border rounded-xl p-4"
           >
