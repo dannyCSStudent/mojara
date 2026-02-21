@@ -6,7 +6,6 @@ import { fetchUnreadCount } from "../../api/notifications";
 
 export default function PrivateLayout() {
   const pathname = usePathname();
-
   const isAuthenticated = useAppStore((s) => s.isAuthenticated);
   const isHydrated = useAppStore((s) => s.isHydrated);
   const unreadCount = useAppStore((s) => s.unreadCount);
@@ -61,7 +60,7 @@ if (!hasCompletedOnboarding && !isOnboardingRoute) {
         options={{
           title: "Home",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="home" size={size} color={color} />
+            <Ionicons name="home-outline" size={size} color={color} />
           ),
         }}
       />
@@ -71,7 +70,7 @@ if (!hasCompletedOnboarding && !isOnboardingRoute) {
         options={{
           title: "Orders",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="cart" size={size} color={color} />
+            <Ionicons name="cart-outline" size={size} color={color} />
           ),
         }}
       />
@@ -95,6 +94,9 @@ if (!hasCompletedOnboarding && !isOnboardingRoute) {
         name="profile"
         options={{
           title: "Profile",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="person-outline" size={size} color={color} />
+          ),
         }}
       />
 

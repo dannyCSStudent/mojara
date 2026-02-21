@@ -1,5 +1,5 @@
 from uuid import UUID
-from app.db import get_supabase_client
+from app.db import get_user_client
 
 
 def list_markets(jwt: str):
@@ -7,7 +7,7 @@ def list_markets(jwt: str):
     Returns all markets visible to the current user.
     Visibility is enforced entirely by Supabase RLS.
     """
-    supabase = get_supabase_client(jwt)
+    supabase = get_user_client(jwt)
 
     res = (
         supabase
@@ -26,7 +26,7 @@ def get_market_by_id(jwt: str, market_id: UUID):
     RLS ensures access control.
     Returns None if not found or not allowed.
     """
-    supabase = get_supabase_client(jwt)
+    supabase = get_user_client(jwt)
 
     res = (
         supabase

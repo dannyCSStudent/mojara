@@ -1,4 +1,4 @@
-from app.db import get_supabase_client
+from app.db import get_user_client
 from fastapi import HTTPException
 from postgrest import APIError
 import httpx
@@ -6,7 +6,7 @@ from uuid import UUID
 
 
 def get_active_price_agreements(jwt: str):
-    supabase = get_supabase_client(jwt)
+    supabase = get_user_client(jwt)
 
     try:
         res = (
@@ -36,7 +36,7 @@ def get_active_price_agreements(jwt: str):
 
 
 def lock_price_agreement(price_id: UUID, jwt: str):
-    supabase = get_supabase_client(jwt)
+    supabase = get_user_client(jwt)
 
     try:
         # Fetch current status
@@ -76,7 +76,7 @@ def lock_price_agreement(price_id: UUID, jwt: str):
 
 
 def get_admin_price_agreements(jwt: str):
-    supabase = get_supabase_client(jwt)
+    supabase = get_user_client(jwt)
 
     try:
         res = (

@@ -1,4 +1,4 @@
-from app.db import get_supabase_client
+from app.db import get_user_client
 from fastapi import HTTPException
 import httpx
 from postgrest import APIError
@@ -10,7 +10,7 @@ from datetime import datetime
 # =========================
 
 def get_user_subscriptions(jwt: str, user_id: str):
-    supabase = get_supabase_client(jwt)
+    supabase = get_user_client(jwt)
 
     try:
         res = (
@@ -34,7 +34,7 @@ def get_user_subscriptions(jwt: str, user_id: str):
 # =========================
 
 def create_subscription(jwt: str, user_id: str, payload: dict):
-    supabase = get_supabase_client(jwt)
+    supabase = get_user_client(jwt)
 
     data = {
         **payload,
@@ -56,7 +56,7 @@ def create_subscription(jwt: str, user_id: str, payload: dict):
 
 
 def delete_subscription(jwt: str, subscription_id: str, user_id: str):
-    supabase = get_supabase_client(jwt)
+    supabase = get_user_client(jwt)
 
     # ensure ownership
     existing = (
@@ -82,7 +82,7 @@ def delete_subscription(jwt: str, subscription_id: str, user_id: str):
 
 
 def get_user_notifications(jwt: str, user_id: str):
-    supabase = get_supabase_client(jwt)
+    supabase = get_user_client(jwt)
 
     try:
         res = (
@@ -102,7 +102,7 @@ def get_user_notifications(jwt: str, user_id: str):
 
 
 def mark_notification_read(jwt: str, notification_id: str, user_id: str):
-    supabase = get_supabase_client(jwt)
+    supabase = get_user_client(jwt)
 
     # ensure ownership
     existing = (
@@ -128,7 +128,7 @@ def mark_notification_read(jwt: str, notification_id: str, user_id: str):
 
 
 def get_unread_count(jwt: str, user_id: str):
-    supabase = get_supabase_client(jwt)
+    supabase = get_user_client(jwt)
 
     res = (
         supabase

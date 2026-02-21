@@ -6,14 +6,12 @@ import "../global.css";
 
 export default function RootLayout() {
   const restoreSession = useAppStore((s) => s.restoreSession);
-  const setHydrated = useAppStore((s) => s.setHydrated);
   const isHydrated = useAppStore((s) => s.isHydrated);
 
   useEffect(() => {
-    restoreSession()
-      .catch(console.error)
-      .finally(() => setHydrated(true));
-  }, [restoreSession, setHydrated]);
+  restoreSession().catch(console.error);
+}, [restoreSession]);
+
 
   // ✅ Listen for password recovery events
   useEffect(() => {

@@ -1,4 +1,4 @@
-from app.db import get_supabase_client
+from app.db import get_user_client
 from fastapi import HTTPException
 from postgrest import APIError
 import httpx
@@ -9,7 +9,7 @@ import httpx
 # =========================
 
 def get_orders_for_user(jwt: str, user_id: str):
-    supabase = get_supabase_client(jwt)
+    supabase = get_user_client(jwt)
 
     res = (
         supabase
@@ -40,7 +40,7 @@ def get_orders_for_user(jwt: str, user_id: str):
 
 
 def get_orders_for_vendor(jwt: str, vendor_id: str):
-    supabase = get_supabase_client(jwt)
+    supabase = get_user_client(jwt)
 
     try:
         res = (
@@ -78,7 +78,7 @@ def get_orders_for_vendor(jwt: str, vendor_id: str):
 
 
 def get_order_by_id(jwt: str, order_id: str, user_id: str):
-    supabase = get_supabase_client(jwt)
+    supabase = get_user_client(jwt)
 
     res = (
         supabase
@@ -144,7 +144,7 @@ def get_order_by_id(jwt: str, order_id: str, user_id: str):
 # =========================
 
 def get_vendor_id_for_user(jwt: str, user_id: str) -> str:
-    supabase = get_supabase_client(jwt)
+    supabase = get_user_client(jwt)
     
     res = (
         supabase
@@ -166,7 +166,7 @@ def get_vendor_id_for_user(jwt: str, user_id: str) -> str:
 # =========================
 
 def create_order(jwt, market_id, vendor_id, customer_id, items):
-    supabase = get_supabase_client(jwt)
+    supabase = get_user_client(jwt)
     
     res = supabase.rpc(
         "create_order_atomic",
@@ -185,7 +185,7 @@ def create_order(jwt, market_id, vendor_id, customer_id, items):
 
 
 def confirm_order(jwt: str, order_id: str, vendor_id: str):
-    supabase = get_supabase_client(jwt)
+    supabase = get_user_client(jwt)
 
     res = supabase.rpc(
         "confirm_order_atomic",
@@ -202,7 +202,7 @@ def confirm_order(jwt: str, order_id: str, vendor_id: str):
 
 
 def cancel_order(jwt: str, order_id: str, vendor_id: str):
-    supabase = get_supabase_client(jwt)
+    supabase = get_user_client(jwt)
 
     res = supabase.rpc(
         "cancel_order_atomic",
@@ -279,7 +279,7 @@ def _normalize_order(order):
 # =========================
 
 def refund_order(jwt: str, order_id: str, amount: float, reason: str):
-    supabase = get_supabase_client(jwt)
+    supabase = get_user_client(jwt)
 
     res = supabase.rpc(
         "refund_order_atomic",

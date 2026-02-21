@@ -30,6 +30,7 @@ def get_current_user(
     creds: HTTPAuthorizationCredentials = Depends(security),
 ):
     token = creds.credentials
+    print("Received token:", token)  # Debugging line
 
     try:
         unverified_header = jwt.get_unverified_header(token)
@@ -58,7 +59,7 @@ def get_current_user(
         # 🔑 IMPORTANT ADDITIONS
         payload["id"] = payload["sub"]
         payload["_jwt"] = token
-        payload["app_role"] = payload.get("role", "user")
+        payload["app_role"] = payload.get("app_metadata", {}).get("role", "user")
 
         return payload
 
@@ -85,7 +86,7 @@ def get_current_jwt(
 
 def require_role(required_role: str):
     def dependency(user=Depends(get_current_user)):
-        role = user.get("app_metadata", {}).get("role")
+        role = user.get("app_role")
 
         if role not in ROLE_LEVELS:
             raise HTTPException(
@@ -106,3 +107,15 @@ def require_role(required_role: str):
 
 def get_user_id(user: dict) -> str:
     return user["sub"]
+
+
+def require_admin(current_user: dict = Depends(get_current_user)):
+    role = current_user.get("app_metadata", {}).get("role")
+
+    if role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required",
+        )
+
+    return current_user

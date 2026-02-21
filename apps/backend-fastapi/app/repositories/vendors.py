@@ -1,15 +1,15 @@
-from app.db import get_supabase_client
+from app.db import get_user_client
 from uuid import UUID
 
 
 def get_vendors(jwt):
-    supabase = get_supabase_client(jwt)
+    supabase = get_user_client(jwt)
     res = supabase.table("vendors").select("*").execute()
     return res.data
 
 
 def get_vendor(vendor_id: str, jwt):
-    supabase = get_supabase_client(jwt)
+    supabase = get_user_client(jwt)
     res = (
         supabase.table("vendors")
         .select("*")
@@ -26,7 +26,7 @@ def create_vendor(
     market_id: UUID,
     name: str,
 ):
-    supabase = get_supabase_client(jwt)
+    supabase = get_user_client(jwt)
 
     res = (
         supabase
@@ -56,7 +56,7 @@ def update_vendor(
     Update a vendor.
     RLS ensures user has permission via market membership.
     """
-    supabase = get_supabase_client(jwt)
+    supabase = get_user_client(jwt)
 
     res = (
         supabase
@@ -73,7 +73,7 @@ def update_vendor(
 
 
 def delete_vendor(vendor_id: str, jwt):
-    supabase = get_supabase_client(jwt)
+    supabase = get_user_client(jwt)
     supabase.table("vendors").delete().eq("id", vendor_id).execute()
     return {"status": "deleted"}
 
@@ -85,7 +85,7 @@ def list_vendors_for_market(jwt: str, market_id: UUID):
       - user belongs to market
       - admin visibility rules
     """
-    supabase = get_supabase_client(jwt)
+    supabase = get_user_client(jwt)
 
     res = (
         supabase

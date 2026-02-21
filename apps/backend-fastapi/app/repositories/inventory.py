@@ -1,5 +1,5 @@
 from fastapi import HTTPException
-from app.db import get_supabase_client
+from app.db import get_user_client
 from postgrest.exceptions import APIError
 
 
@@ -9,7 +9,7 @@ def reserve_inventory(
     order_id: str,
     quantity: int,
 ):
-    supabase = get_supabase_client(jwt)
+    supabase = get_user_client(jwt)
 
     try:
         res = supabase.rpc(

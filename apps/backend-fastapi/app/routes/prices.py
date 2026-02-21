@@ -1,6 +1,6 @@
 # routers/prices.py
 from fastapi import APIRouter, Depends, Query
-from app.db import get_supabase_client
+from app.db import get_user_client
 from app.auth import get_current_user
 from app.schemas.prices import PriceSignalIn, ActivePriceAgreementOut
 from app.repositories.prices import get_active_price_agreements
@@ -13,7 +13,7 @@ router = APIRouter(prefix="/prices", tags=["Prices"])
 @router.get("/current")
 def get_current_prices(
     market_id: str = Query(...),
-    db=Depends(get_supabase_client),
+    db=Depends(get_user_client),
     user=Depends(get_current_user),
 ):
     rows = db.execute(
@@ -42,7 +42,7 @@ def get_current_prices(
 @router.get("/explain")
 def explain_prices(
     market_id: str = Query(...),
-    db=Depends(get_supabase_client),
+    db=Depends(get_user_client),
     user=Depends(get_current_user),
 ):
     return db.execute(
@@ -60,7 +60,7 @@ def explain_prices(
 def submit_price_signal(
 
     payload: PriceSignalIn,
-    db=Depends(get_supabase_client),
+    db=Depends(get_user_client),
     user=Depends(get_current_user),
 ):
     db.execute(

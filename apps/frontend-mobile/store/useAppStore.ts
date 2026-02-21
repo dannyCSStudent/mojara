@@ -335,28 +335,43 @@ export const useAppStore = create<AppState>()(
       },
 
       restoreSession: async () => {
-        const { data } =
-          await supabase.auth.getSession();
+        try {
+          const { data } = await supabase.auth.getSession();
 
-        if (!data.session) {
+          if (!data.session) {
+            set({
+              isAuthenticated: false,
+              authToken: null,
+              user: null,
+              subscriptions: [],
+              activeMarketId: null,
+              unreadCount: 0,
+            });
+
+            setApiAuthToken(null);
+            return;
+          }
+
+          await get().loadUserProfile(
+            data.session.user.id,
+            data.session.access_token
+          );
+        } catch (error) {
+          console.error("Session restore failed:", error);
+
           set({
             isAuthenticated: false,
             authToken: null,
             user: null,
-            subscriptions: [],
-            activeMarketId: null,
-            unreadCount: 0,
           });
 
           setApiAuthToken(null);
-          return;
+        } finally {
+          // 🔥 Hydration ownership now lives here
+          set({ isHydrated: true });
         }
-
-        await get().loadUserProfile(
-          data.session.user.id,
-          data.session.access_token
-        );
       },
+
 
       signOut: async () => {
         const { notificationChannel } = get();
@@ -396,10 +411,6 @@ export const useAppStore = create<AppState>()(
         activeMarketId: state.activeMarketId,
         vendorId: state.vendorId,
       }),
-
-      onRehydrateStorage: () => (state) => {
-        state?.setHydrated(true);
-      },
     }
   )
 );

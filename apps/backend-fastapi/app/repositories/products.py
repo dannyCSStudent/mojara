@@ -1,16 +1,16 @@
-from app.db import get_supabase_client
+from app.db import get_user_client
 from app.schemas.products import ProductBulkUpdateItem
 from typing import List
 from fastapi import HTTPException
 
 def list_products(jwt: str):
-    supabase = get_supabase_client(jwt)
+    supabase = get_user_client(jwt)
     res = supabase.table("products").select("*").execute()
     return res.data
 
 
 def get_product_by_id(jwt: str, product_id: str):
-    supabase = get_supabase_client(jwt)
+    supabase = get_user_client(jwt)
     res = (
         supabase
         .table("products")
@@ -23,13 +23,13 @@ def get_product_by_id(jwt: str, product_id: str):
 
 
 def create_product(jwt: str, payload: dict):
-    supabase = get_supabase_client(jwt)
+    supabase = get_user_client(jwt)
     res = supabase.table("products").insert(payload).execute()
     return res.data[0]
 
 
 def update_product(jwt: str, product_id: str, updates: dict):
-    supabase = get_supabase_client(jwt)
+    supabase = get_user_client(jwt)
     res = (
         supabase
         .table("products")
@@ -41,7 +41,7 @@ def update_product(jwt: str, product_id: str, updates: dict):
 
 
 def delete_product(jwt: str, product_id: str):
-    supabase = get_supabase_client(jwt)
+    supabase = get_user_client(jwt)
     res = (
         supabase
         .table("products")
@@ -57,7 +57,7 @@ def get_products_for_vendor(
     market_id: str,
     vendor_id: str,
 ):
-    supabase = get_supabase_client(jwt)
+    supabase = get_user_client(jwt)
 
     res = (
         supabase
@@ -88,7 +88,7 @@ def create_product_for_vendor(
     vendor_id: str,
     payload: dict,
 ):
-    supabase = get_supabase_client(jwt)
+    supabase = get_user_client(jwt)
 
     data = {
         **payload,
@@ -113,7 +113,7 @@ def update_product_for_vendor(
     product_id: str,
     updates: dict,
 ):
-    supabase = get_supabase_client(jwt)
+    supabase = get_user_client(jwt)
 
     res = (
         supabase
@@ -134,7 +134,7 @@ def delete_product_for_vendor(
     vendor_id: str,
     product_id: str,
 ):
-    supabase = get_supabase_client(jwt)
+    supabase = get_user_client(jwt)
 
     res = (
         supabase
@@ -155,7 +155,7 @@ def create_products_for_vendor_bulk(
     vendor_id: str,
     products: list[dict],
 ):
-    supabase = get_supabase_client(jwt)
+    supabase = get_user_client(jwt)
 
     payload = [
         {
@@ -181,7 +181,7 @@ def bulk_update_products_for_vendor(
     vendor_id: str,
     products: list[dict],
 ):
-    supabase = get_supabase_client(jwt)
+    supabase = get_user_client(jwt)
     updated = []
 
     for item in products:
@@ -212,7 +212,7 @@ def update_product_inventory(
     product_id: str,
     updates: dict,
 ):
-    supabase = get_supabase_client(jwt)
+    supabase = get_user_client(jwt)
 
     res = (
         supabase
@@ -234,7 +234,7 @@ def decrement_inventory(
     market_id: str,
     quantity: int,
 ):
-    supabase = get_supabase_client(jwt)
+    supabase = get_user_client(jwt)
 
     res = supabase.rpc(
         "decrement_product_inventory",

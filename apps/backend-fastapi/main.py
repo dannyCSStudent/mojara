@@ -6,7 +6,9 @@ from app.routes import ( markets,
                         orders, 
                         prices, 
                         admin_prices,
-                        notifications )
+                        notifications,
+                        admin
+                 )
 
 app = FastAPI(title="Mojara API")
 
@@ -34,3 +36,4 @@ app.include_router(orders.router)
 app.include_router(prices.router)
 app.include_router(admin_prices.router, prefix="/admin", tags=["admin"])
 app.include_router(notifications.router)
+app.include_router(admin.router)
