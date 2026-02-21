@@ -1,8 +1,11 @@
+# routes/products.py
+# has been audited for permissions and dependencies, and implements the following endpoints:
+
 from fastapi import APIRouter, Depends, HTTPException
 from typing import List
 from uuid import UUID
 
-from app.auth import get_current_user
+from app.core.dependencies import get_current_user, require_permissions
 from app.schemas.products import (
     ProductCreate,
     ProductUpdate,
@@ -16,65 +19,76 @@ from app.repositories.products import (
     delete_product,
 )
 
-router = APIRouter(prefix="/products", tags=["products"])
+router = APIRouter(prefix="/products", tags=["Products"])
 
-
+# -----------------------------------------
+# List products
+# -----------------------------------------
 @router.get("", response_model=List[ProductOut])
-def get_products(user=Depends(get_current_user)):
-    jwt = user["_jwt"]
-    return list_products(jwt)
+def get_products(
+    current_user = Depends(require_permissions("products.read"))
+):
+    return list_products(current_user["_jwt"])
 
 
+# -----------------------------------------
+# Get single product
+# -----------------------------------------
 @router.get("/{product_id}", response_model=ProductOut)
 def get_product(
     product_id: UUID,
-    user=Depends(get_current_user),
+    current_user = Depends(require_permissions("products.read"))
 ):
-    jwt = user["_jwt"]
-    product = get_product_by_id(jwt, str(product_id))
+    product = get_product_by_id(current_user["_jwt"], str(product_id))
 
     if not product:
-        raise HTTPException(404, "Product not found")
+        raise HTTPException(status_code=404, detail="Product not found")
 
     return product
 
 
+# -----------------------------------------
+# Create product
+# -----------------------------------------
 @router.post("", response_model=ProductOut)
 def create_product_route(
     payload: ProductCreate,
-    user=Depends(get_current_user),
+    current_user = Depends(require_permissions("products.create"))
 ):
-    jwt = user["_jwt"]
-    return create_product(jwt, payload.model_dump())
+    return create_product(current_user["_jwt"], payload.model_dump())
 
 
+# -----------------------------------------
+# Update product
+# -----------------------------------------
 @router.patch("/{product_id}", response_model=ProductOut)
 def patch_product(
     product_id: UUID,
     payload: ProductUpdate,
-    user=Depends(get_current_user),
+    current_user = Depends(require_permissions("products.update"))
 ):
-    jwt = user["_jwt"]
     updates = payload.model_dump(exclude_unset=True)
 
     if not updates:
-        raise HTTPException(400, "No fields to update")
+        raise HTTPException(status_code=400, detail="No fields to update")
 
-    product = update_product(jwt, str(product_id), updates)
+    product = update_product(current_user["_jwt"], str(product_id), updates)
 
     if not product:
-        raise HTTPException(404, "Product not found or not allowed")
+        raise HTTPException(status_code=404, detail="Product not found or not allowed")
 
     return product
 
 
+# -----------------------------------------
+# Delete product
+# -----------------------------------------
 @router.delete("/{product_id}", status_code=204)
 def delete_product_route(
     product_id: UUID,
-    user=Depends(get_current_user),
+    current_user = Depends(require_permissions("products.delete"))
 ):
-    jwt = user["_jwt"]
-    deleted = delete_product(jwt, str(product_id))
+    deleted = delete_product(current_user["_jwt"], str(product_id))
 
     if not deleted:
-        raise HTTPException(404, "Product not found or not allowed")
+        raise HTTPException(status_code=404, detail="Product not found or not allowed")

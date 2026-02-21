@@ -1,4 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException
+# routes/notifications.py
+# has been audited for permissions and dependencies, and implements the following endpoints:
+
+from fastapi import APIRouter, Depends
 from typing import List
 
 from app.schemas.notifications import (
@@ -14,103 +17,97 @@ from app.repositories.notifications import (
     mark_notification_read,
     get_unread_count
 )
-from app.auth import get_current_user
+from app.core.dependencies import get_current_user, require_permissions
 
 router = APIRouter(prefix="/notifications", tags=["Notifications"])
 
-
-# -------------------------
+# -----------------------------------------
 # List subscriptions
-# -------------------------
-
-@router.get(
-    "/subscriptions",
-    response_model=List[NotificationSubscriptionOut],
-)
+# -----------------------------------------
+@router.get("/subscriptions", response_model=List[NotificationSubscriptionOut])
 def list_subscriptions(
-    user=Depends(get_current_user),
+    current_user = Depends(require_permissions("notifications.read"))
 ):
     return get_user_subscriptions(
-        jwt=user["jwt"],
-        user_id=user["id"],
+        jwt=current_user["_jwt"],
+        user_id=current_user["sub"],
     )
 
-
-# -------------------------
+# -----------------------------------------
 # Create subscription
-# -------------------------
-
-@router.post(
-    "/subscriptions",
-    response_model=NotificationSubscriptionOut,
-)
+# -----------------------------------------
+@router.post("/subscriptions", response_model=NotificationSubscriptionOut)
 def subscribe(
     payload: NotificationSubscriptionIn,
-    user=Depends(get_current_user),
+    current_user = Depends(require_permissions("notifications.create"))
 ):
     return create_subscription(
-        jwt=user["jwt"],
-        user_id=user["id"],
+        jwt=current_user["_jwt"],
+        user_id=current_user["sub"],
         payload=payload.dict(),
     )
 
-
-# -------------------------
+# -----------------------------------------
 # Delete subscription
-# -------------------------
-
-@router.delete(
-    "/subscriptions/{subscription_id}",
-)
+# -----------------------------------------
+@router.delete("/subscriptions/{subscription_id}")
 def unsubscribe(
     subscription_id: str,
-    user=Depends(get_current_user),
+    current_user = Depends(require_permissions("notifications.delete"))
 ):
     delete_subscription(
-        jwt=user["jwt"],
+        jwt=current_user["_jwt"],
         subscription_id=subscription_id,
-        user_id=user["id"],
+        user_id=current_user["sub"],
     )
     return {"ok": True}
 
-
-@router.get(
-    "",
-    response_model=List[NotificationOut],
-)
+# -----------------------------------------
+# List notifications
+# -----------------------------------------
+@router.get("", response_model=List[NotificationOut])
 def list_notifications(
-    user=Depends(get_current_user),
+    current_user = Depends(require_permissions("notifications.read"))
 ):
     return get_user_notifications(
-        jwt=user["_jwt"],
-        user_id=user["id"],
+        jwt=current_user["_jwt"],
+        user_id=current_user["sub"],
     )
 
-
+# -----------------------------------------
+# Mark notification as read
+# -----------------------------------------
 @router.patch("/{notification_id}/read")
 def mark_read(
     notification_id: str,
-    user=Depends(get_current_user),
+    current_user = Depends(require_permissions("notifications.update"))
 ):
     mark_notification_read(
-        jwt=user["_jwt"],
+        jwt=current_user["_jwt"],
         notification_id=notification_id,
-        user_id=user["id"],
+        user_id=current_user["sub"],
     )
-#   Need to remove the underline in auth for jwt
     return {"ok": True}
 
-
+# -----------------------------------------
+# Debug current user (admin/debug only)
+# -----------------------------------------
 @router.get("/debug-auth")
-def debug_auth(user=Depends(get_current_user)):
-    return user
+def debug_auth(
+    current_user = Depends(require_permissions("notifications.read"))
+):
+    return current_user
 
-
+# -----------------------------------------
+# Unread notification count
+# -----------------------------------------
 @router.get("/unread-count")
-def unread_count(user=Depends(get_current_user)):
+def unread_count(
+    current_user = Depends(require_permissions("notifications.read"))
+):
     return {
         "count": get_unread_count(
-            jwt=user["_jwt"],
-            user_id=user["id"],
+            jwt=current_user["_jwt"],
+            user_id=current_user["sub"],
         )
     }

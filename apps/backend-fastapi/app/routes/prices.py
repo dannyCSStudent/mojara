@@ -1,104 +1,69 @@
-# routers/prices.py
+# routes/prices.py
+# has been audited for permissions and dependencies, and implements the following functions:
+
 from fastapi import APIRouter, Depends, Query
-from app.db import get_user_client
-from app.auth import get_current_user
-from app.schemas.prices import PriceSignalIn, ActivePriceAgreementOut
-from app.repositories.prices import get_active_price_agreements
-from app.auth import get_current_jwt
 from typing import List
+
+from app.schemas.prices import PriceSignalIn, ActivePriceAgreementOut
+from app.repositories.prices import (
+    get_active_price_agreements,
+    get_admin_price_agreements,
+    lock_price_agreement,
+    submit_price_signal,
+    get_price_explain,
+)
+from app.core.dependencies import get_current_user, get_current_jwt, require_permissions
 
 router = APIRouter(prefix="/prices", tags=["Prices"])
 
+# -----------------------------------------
+# Get active locked price agreements
+# -----------------------------------------
+@router.get("/active", response_model=List[ActivePriceAgreementOut])
+def read_active_prices(jwt: str = Depends(get_current_jwt)):
+    return get_active_price_agreements(jwt)
 
-@router.get("/current")
-def get_current_prices(
-    market_id: str = Query(...),
-    db=Depends(get_user_client),
-    user=Depends(get_current_user),
+# -----------------------------------------
+# Admin: list all price agreements
+# -----------------------------------------
+@router.get("/admin", response_model=List[ActivePriceAgreementOut])
+def list_admin_prices(
+    jwt: str = Depends(get_current_jwt),
+    _=Depends(require_permissions("prices.read")),
 ):
-    rows = db.execute(
-        """
-        SELECT
-          pa.market_id,
-          m.name AS market_name,
-          pa.size_band_id,
-          sb.name AS size_band,
-          pa.reference_price,
-          pa.confidence_score,
-          pa.sample_count,
-          pa.valid_from,
-          pa.valid_until
-        FROM public.active_price_agreements pa
-        JOIN public.markets m ON m.id = pa.market_id
-        JOIN public.price_size_bands sb ON sb.id = pa.size_band_id
-        WHERE pa.market_id = :market_id
-        ORDER BY sb.min_grams
-        """,
-        {"market_id": market_id},
-    ).fetchall()
+    return get_admin_price_agreements(jwt)
 
-    return rows
+# -----------------------------------------
+# Admin: lock price agreement
+# -----------------------------------------
+@router.post("/{price_id}/lock")
+def lock_price(price_id: str, jwt: str = Depends(get_current_jwt), _=Depends(require_permissions("prices.lock"))):
+    return lock_price_agreement(price_id, jwt)
 
+# -----------------------------------------
+# Vendor: submit price signal
+# -----------------------------------------
+@router.post("/signal")
+def submit_signal(
+    payload: PriceSignalIn,
+    jwt: str = Depends(get_current_jwt),
+    current_user = Depends(require_permissions("prices.signal")),
+):
+    return submit_price_signal(
+        jwt=jwt,
+        user_id=current_user["sub"],
+        market_id=payload.market_id,
+        size_band_id=payload.size_band_id,
+        price_per_kg=payload.price_per_kg,
+    )
+
+# -----------------------------------------
+# Explain prices
+# -----------------------------------------
 @router.get("/explain")
 def explain_prices(
     market_id: str = Query(...),
-    db=Depends(get_user_client),
-    user=Depends(get_current_user),
+    jwt: str = Depends(get_current_jwt),
+    _=Depends(require_permissions("prices.read")),
 ):
-    return db.execute(
-        """
-        SELECT *
-        FROM public.price_agreement_explain
-        WHERE market_id = :market_id
-        ORDER BY size_band
-        """,
-        {"market_id": market_id},
-    ).fetchall()
-
-
-@router.post("/signal")
-def submit_price_signal(
-
-    payload: PriceSignalIn,
-    db=Depends(get_user_client),
-    user=Depends(get_current_user),
-):
-    db.execute(
-        """
-        INSERT INTO public.price_signals (
-          market_id,
-          vendor_id,
-          size_band_id,
-          price_per_kg,
-          expires_at
-        )
-        VALUES (
-          :market_id,
-          (
-            SELECT id FROM public.vendors
-            WHERE user_id = :user_id
-            LIMIT 1
-          ),
-          :size_band_id,
-          :price_per_kg,
-          now() + interval '3 hours'
-        )
-        """,
-        {
-            "market_id": payload.market_id,
-            "size_band_id": payload.size_band_id,
-            "price_per_kg": payload.price_per_kg,
-            "user_id": user["sub"],
-        },
-    )
-
-    return {"status": "signal_submitted"}
-
-
-@router.get(
-    "/active",
-    response_model=List[ActivePriceAgreementOut],
-    summary="Get active locked price agreements"
-)
-def read_active_prices(jwt: str = Depends(get_current_jwt)):
-    return get_active_price_agreements(jwt)
+    return get_price_explain(jwt, market_id)

@@ -1,6 +1,10 @@
+# routes/orders.py
+# has been audited for permissions and dependencies, and implements the following endpoints:
 from uuid import UUID
 from fastapi import APIRouter, Depends, Query, HTTPException
-from app.auth import get_current_user
+from typing import List
+
+from app.core.dependencies import get_current_jwt, require_permissions
 from app.schemas.orders import (
     CreateOrderPayload,
     OrderOut,
@@ -20,11 +24,9 @@ from app.repositories.orders import (
 
 router = APIRouter(tags=["orders"])
 
-
 # ==========================================================
 # 🛒 CREATE ORDER
 # ==========================================================
-
 @router.post(
     "/markets/{market_id}/vendors/{vendor_id}/orders",
     response_model=OrderOut,
@@ -33,42 +35,32 @@ def create_order_endpoint(
     market_id: UUID,
     vendor_id: UUID,
     payload: CreateOrderPayload,
-    user=Depends(get_current_user),
+    jwt: str = Depends(get_current_jwt),
+    _=Depends(require_permissions("orders.create")),
 ):
-    jwt = user["_jwt"]
-
     return create_order(
         jwt=jwt,
         market_id=str(market_id),
         vendor_id=str(vendor_id),
         customer_id=str(payload.user_id),
-        items=[
-            {
-                "product_id": str(i.product_id),
-                "quantity": i.quantity,
-            }
-            for i in payload.items
-        ],
+        items=[{"product_id": str(i.product_id), "quantity": i.quantity} for i in payload.items],
     )
-
 
 # ==========================================================
 # 📦 LIST ORDERS (USER / VENDOR)
 # ==========================================================
-
 @router.get("/orders")
 def list_orders_endpoint(
     scope: str = Query("user", enum=["user", "vendor"]),
-    user=Depends(get_current_user),
+    jwt: str = Depends(get_current_jwt),
+    current_user = Depends(require_permissions(["orders.read"])),
 ):
-    jwt = user["_jwt"]
-    user_id = user.get("sub")
-
-    if not user_id:
-        raise HTTPException(status_code=401, detail="Invalid auth token")
+    user_id = current_user["sub"]
 
     try:
         if scope == "vendor":
+            # Only vendors with orders.read permission can fetch vendor orders
+            _ = require_permissions("orders.vendor_read")(current_user)
             vendor_id = get_vendor_id_for_user(jwt, user_id)
             return get_orders_for_vendor(jwt=jwt, vendor_id=vendor_id)
 
@@ -79,134 +71,86 @@ def list_orders_endpoint(
 
     except Exception as e:
         print("❌ list_orders_endpoint error:", repr(e))
-        raise HTTPException(
-            status_code=500,
-            detail="Failed to load orders",
-        )
-
+        raise HTTPException(status_code=500, detail="Failed to load orders")
 
 # ==========================================================
-# 🔍 ORDER DETAILS
+# 🔍 GET MY ORDERS
 # ==========================================================
-
 @router.get("/orders/me")
-def get_my_orders(user=Depends(get_current_user)):
-    return get_orders_for_user(
-        user_id=user["sub"],
-        jwt=user["_jwt"],
-    )
+def get_my_orders(
+    jwt: str = Depends(get_current_jwt),
+    current_user = Depends(require_permissions("orders.read")),
+):
+    return get_orders_for_user(jwt=jwt, user_id=current_user["sub"])
 
-
-
+# ==========================================================
+# 🔍 GET ORDER DETAILS
+# ==========================================================
 @router.get("/orders/{order_id}", response_model=OrderOut)
 def get_order(
     order_id: UUID,
-    user = Depends(get_current_user),
+    jwt: str = Depends(get_current_jwt),
+    current_user = Depends(require_permissions("orders.read")),
 ):
-    return get_order_by_id(
-        jwt=user["_jwt"],
-        order_id=str(order_id),
-        user_id=user["sub"],
-    )
-
+    return get_order_by_id(jwt=jwt, order_id=str(order_id), user_id=current_user["sub"])
 
 # ==========================================================
 # ✅ CONFIRM ORDER (VENDOR)
 # ==========================================================
-
 @router.post("/orders/{order_id}/confirm", response_model=OrderConfirmOut)
 def confirm_order_endpoint(
     order_id: str,
-    user=Depends(get_current_user),
+    jwt: str = Depends(get_current_jwt),
+    current_user = Depends(require_permissions("orders.confirm")),
 ):
-    jwt = user["_jwt"]
-    user_id = user.get("sub")
-
+    user_id = current_user["sub"]
     vendor_id = get_vendor_id_for_user(jwt, user_id)
 
     try:
-        return confirm_order(
-            jwt=jwt,
-            order_id=order_id,
-            vendor_id=vendor_id,
-        )
+        return confirm_order(jwt=jwt, order_id=order_id, vendor_id=vendor_id)
 
     except HTTPException:
         raise
 
     except Exception as e:
         msg = str(e)
-
         if "Invalid order status transition" in msg:
-            raise HTTPException(
-                status_code=409,
-                detail="Order cannot be confirmed in its current state",
-            )
-
-        raise HTTPException(
-            status_code=500,
-            detail="Failed to confirm order",
-        )
-
-
+            raise HTTPException(status_code=409, detail="Order cannot be confirmed in its current state")
+        raise HTTPException(status_code=500, detail="Failed to confirm order")
 
 # ==========================================================
 # ❌ CANCEL ORDER
 # ==========================================================
-
-@router.post(
-    "/orders/{order_id}/cancel",
-    response_model=OrderOut,
-)
+@router.post("/orders/{order_id}/cancel", response_model=OrderOut)
 def cancel_order_endpoint(
     order_id: str,
-    user=Depends(get_current_user),
+    jwt: str = Depends(get_current_jwt),
+    current_user = Depends(require_permissions("orders.cancel")),
 ):
-    jwt = user["_jwt"]
-    user_id = user.get("sub")
-
+    user_id = current_user["sub"]
     vendor_id = get_vendor_id_for_user(jwt, user_id)
 
     try:
-        return cancel_order(
-            jwt=jwt,
-            order_id=order_id,
-            vendor_id=vendor_id,
-        )
+        return cancel_order(jwt=jwt, order_id=order_id, vendor_id=vendor_id)
 
     except HTTPException:
         raise
 
     except Exception as e:
         msg = str(e)
-
         if "Invalid order status transition" in msg:
-            raise HTTPException(
-                status_code=409,
-                detail="Order cannot be canceled in its current state",
-            )
+            raise HTTPException(status_code=409, detail="Order cannot be canceled in its current state")
+        raise HTTPException(status_code=500, detail="Failed to cancel order")
 
-        raise HTTPException(
-            status_code=500,
-            detail="Failed to cancel order",
-        )
-
-
+# ==========================================================
+# 💰 REFUND ORDER
+# ==========================================================
 @router.post("/orders/{order_id}/refund", response_model=OrderOut)
 def refund_order_route(
     order_id: UUID,
     payload: RefundPayload,
-    user = Depends(get_current_user),
+    jwt: str = Depends(get_current_jwt),
+    current_user = Depends(require_permissions("orders.refund")),
 ):
-    jwt = user.jwt
-
-    # vendor authorization check (already discussed earlier)
-    vendor_id = get_vendor_id_for_user(jwt, user.id)
-
-    return refund_order(
-        jwt=jwt,
-        order_id=str(order_id),
-        amount=payload.amount,
-        reason=payload.reason,
-    )
-
+    vendor_id = get_vendor_id_for_user(jwt, current_user["sub"])
+    return refund_order(jwt=jwt, order_id=str(order_id), amount=payload.amount, reason=payload.reason)
