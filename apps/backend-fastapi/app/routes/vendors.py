@@ -85,7 +85,8 @@ def delete_vendor_route(
     vendor_id: UUID,
     current_user=Depends(require_permissions("vendors.delete"))
 ):
-    deleted = delete_vendor(vendor_id, current_user["_jwt"])
+    deleted = delete_vendor(current_user["_jwt"], vendor_id)
+
     if not deleted:
         raise HTTPException(status_code=404, detail="Vendor not found or not allowed")
 
@@ -96,7 +97,7 @@ def delete_vendor_route(
 @router.get("/me")
 def get_my_vendor(current_user=Depends(get_current_user)):
     jwt = current_user["_jwt"]
-    user_id = current_user.get("sub")
+    user_id = current_user["id"]
 
     if not user_id:
         raise HTTPException(status_code=401, detail="Invalid auth token")

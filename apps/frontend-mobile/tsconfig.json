@@ -11,7 +11,11 @@
     "types": ["nativewind/types"],
     "paths": {
       "@repo/ui": ["../../packages/ui/src"],
-      "@repo/ui/*": ["../../packages/ui/src/*"]
+      "@repo/ui/*": ["../../packages/ui/src/*"],
+      "@repo/types": ["../../packages/types/src"],
+      "@repo/types/*": ["../../packages/types/src/*"],
+      "@repo/permissions": ["../../packages/permissions/src"],
+      "@repo/permissions/*": ["../../packages/permissions/src/*"]
     }
   }
 }

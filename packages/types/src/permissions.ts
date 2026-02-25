@@ -1,0 +1,26 @@
+export type AppRole =
+  | "admin"
+  | "moderator"
+  | "vendor"
+  | "user"
+
+export type Permission =
+  | "*"
+  | "markets.read"
+  | "vendors.read"
+  | "products.read"
+  | "products.update"
+  | "products.bulk_update"
+  | "products.inventory_update"
+  | "orders.create"
+  | "orders.read"
+  | "orders.vendor_read"
+  | "orders.confirm"
+  | "orders.cancel"
+  | "prices.read"
+  | "prices.lock"
+  | "prices.signal"
+  | "notifications.read"
+  | "notifications.create"
+  | "notifications.update"
+

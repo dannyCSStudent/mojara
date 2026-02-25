@@ -6,18 +6,17 @@ from typing import Dict, List
 # ----------------------------------------
 
 ROLE_PERMISSIONS: Dict[str, List[str]] = {
+
     # ---------------------------------------------------
     # ADMIN
     # ---------------------------------------------------
-    # Full system access
     "admin": [
-        "*.*",  # Superuser access to everything
+        "*",
     ],
 
     # ---------------------------------------------------
     # MODERATOR
     # ---------------------------------------------------
-    # Operational control, but no destructive admin power
     "moderator": [
         # Markets
         "markets.read",
@@ -46,29 +45,44 @@ ROLE_PERMISSIONS: Dict[str, List[str]] = {
     ],
 
     # ---------------------------------------------------
-    # USER (standard marketplace participant)
+    # VENDOR
     # ---------------------------------------------------
-    "user": [
-        # Markets
-        "markets.read",
-
-        # Vendors
+    "vendor": [
+        # Vendors (self-management)
         "vendors.read",
+        "vendors.update",
 
-        # Products
+        # Products (their products only)
         "products.read",
+        "products.update",
+        "products.inventory_update",
 
-        # Orders
-        "orders.create",
-        "orders.read",
+        # Orders (their orders only)
+        "orders.vendor_read",
+        "orders.confirm",
+        "orders.cancel",
 
         # Prices
-        "prices.signal",   # can submit price signal
-        "prices.read",     # can read current prices
+        "prices.read",
 
         # Notifications
+        "notifications.read",
+    ],
+
+    # ---------------------------------------------------
+    # USER
+    # ---------------------------------------------------
+    "user": [
+        "markets.read",
+        "vendors.read",
+        "products.read",
+        "orders.create",
+        "orders.read",
+        "prices.signal",
+        "prices.read",
         "notifications.read",
         "notifications.create",
         "notifications.update",
     ],
 }
+

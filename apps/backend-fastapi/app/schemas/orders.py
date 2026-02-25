@@ -93,3 +93,7 @@ class RefundPayload(BaseModel):
     amount: float = Field(..., gt=0)
     reason: str | None = None
 
+
+class CursorPaginatedOrders(BaseModel):
+    data: List[OrderOut]
+    next_cursor: str | None

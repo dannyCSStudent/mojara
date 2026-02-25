@@ -10,12 +10,13 @@ import { storage } from "./storage";
 /* =========================
    Types
 ========================= */
-
+export type AppRole = "admin" | "moderator" | "user" | "vendor";
 export type AppUser = {
   id: string;
   email: string;
-  app_role: "user" | "admin";
+  app_role: AppRole;
 };
+
 
 interface AppState {
   /* ---------- Lifecycle ---------- */
@@ -275,23 +276,22 @@ export const useAppStore = create<AppState>()(
 
       /* ---------- Profile Loader ---------- */
       loadUserProfile: async (userId, token) => {
-        const { data, error } = await supabase
-          .from("profiles")
-          .select("id, email, app_role")
-          .eq("id", userId)
-          .single();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
 
-        if (error) throw error;
+        if (!user) throw new Error("User not found");
+
+        const role =
+          (user.app_metadata?.role ?? "user") as AppRole;
 
         set({
           isAuthenticated: true,
           authToken: token,
           user: {
-            id: data.id,
-            email: data.email,
-            app_role:
-              (data.app_role ??
-                "user") as "user" | "admin",
+          id: user.id,
+          email: user.email ?? "",
+          app_role: role,
           },
         });
 
@@ -300,6 +300,7 @@ export const useAppStore = create<AppState>()(
         get().initNotificationRealtime();
         await get().loadSubscriptions();
       },
+
 
       /* ---------- Auth Actions ---------- */
       signIn: async (email, password) => {

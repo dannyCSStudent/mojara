@@ -2,41 +2,56 @@ from app.db import get_user_client
 from uuid import UUID
 
 
-def get_vendors(jwt):
-    supabase = get_user_client(jwt)
-    res = supabase.table("vendors").select("*").execute()
-    return res.data
-
-
-def get_vendor(vendor_id: str, jwt):
-    supabase = get_user_client(jwt)
-    res = (
-        supabase.table("vendors")
-        .select("*")
-        .eq("id", vendor_id)
-        .single()
-        .execute()
-    )
-    return res.data
-
-
-def create_vendor(
-    jwt: str,
-    *,
-    market_id: UUID,
-    name: str,
-):
+# -----------------------------
+# List vendors (RLS controlled)
+# -----------------------------
+def get_vendors(jwt: str):
     supabase = get_user_client(jwt)
 
     res = (
         supabase
         .table("vendors")
-        .insert(
-            {
-                "market_id": str(market_id),
-                "name": name,
-            }
-        )
+        .select("*")
+        .order("created_at", desc=False)
+        .execute()
+    )
+
+    return res.data or []
+
+
+# -----------------------------
+# Get single vendor
+# -----------------------------
+def get_vendor(vendor_id: UUID, jwt: str):
+    supabase = get_user_client(jwt)
+
+    res = (
+        supabase
+        .table("vendors")
+        .select("*")
+        .eq("id", str(vendor_id))
+        .single()
+        .execute()
+    )
+
+    return res.data
+
+
+# -----------------------------
+# Create vendor
+# -----------------------------
+def create_vendor(jwt: str, payload: dict):
+    """
+    RLS ensures:
+      - Only market admins can insert
+      - Must belong to market
+    """
+    supabase = get_user_client(jwt)
+
+    res = (
+        supabase
+        .table("vendors")
+        .insert(payload)
         .execute()
     )
 
@@ -46,15 +61,13 @@ def create_vendor(
     return res.data[0]
 
 
-def update_vendor(
-    jwt: str,
-    *,
-    vendor_id: UUID,
-    updates: dict,
-):
+# -----------------------------
+# Update vendor
+# -----------------------------
+def update_vendor(jwt: str, vendor_id: UUID, updates: dict):
     """
-    Update a vendor.
-    RLS ensures user has permission via market membership.
+    RLS ensures:
+      - Only market admins can update
     """
     supabase = get_user_client(jwt)
 
@@ -72,19 +85,34 @@ def update_vendor(
     return res.data[0]
 
 
-def delete_vendor(vendor_id: str, jwt):
-    supabase = get_user_client(jwt)
-    supabase.table("vendors").delete().eq("id", vendor_id).execute()
-    return {"status": "deleted"}
-
-
-def list_vendors_for_market(jwt: str, market_id: UUID):
+# -----------------------------
+# Delete vendor
+# -----------------------------
+def delete_vendor(jwt: str, vendor_id: UUID):
     """
-    Returns vendors for a given market.
     RLS ensures:
-      - user belongs to market
-      - admin visibility rules
+      - Only market admins can delete
     """
+    supabase = get_user_client(jwt)
+
+    res = (
+        supabase
+        .table("vendors")
+        .delete()
+        .eq("id", str(vendor_id))
+        .execute()
+    )
+
+    if not res.data:
+        return None
+
+    return True
+
+
+# -----------------------------
+# Vendors by market
+# -----------------------------
+def list_vendors_for_market(jwt: str, market_id: UUID):
     supabase = get_user_client(jwt)
 
     res = (
@@ -96,4 +124,4 @@ def list_vendors_for_market(jwt: str, market_id: UUID):
         .execute()
     )
 
-    return res.data
+    return res.data or []

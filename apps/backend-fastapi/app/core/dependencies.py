@@ -32,7 +32,6 @@ def get_current_user(
     creds: HTTPAuthorizationCredentials = Depends(security),
 ):
     token = creds.credentials
-    print("Received token:", token)  # Debugging line
 
     try:
         unverified_header = jwt.get_unverified_header(token)
@@ -58,15 +57,26 @@ def get_current_user(
             issuer=SUPABASE_ISSUER,
         )
 
-        # 🔑 IMPORTANT ADDITIONS
+        # --------------------------------------------------
+        # 🔐 STRICT ROLE EXTRACTION + VALIDATION
+        # --------------------------------------------------
+
+        role = payload.get("app_metadata", {}).get("role", "user")
+
+        if role not in ROLE_PERMISSIONS:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Invalid role",
+            )
+
+        # Attach normalized fields
         payload["id"] = payload["sub"]
         payload["_jwt"] = token
-        payload["app_role"] = payload.get("app_metadata", {}).get("role", "user")
+        payload["app_role"] = role
 
         return payload
 
     except JWTError as e:
-        print("JWT ERROR:", e)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Not authenticated",
@@ -84,27 +94,6 @@ def get_current_jwt(
     Returns the raw JWT for Supabase RLS calls
     """
     return user["_jwt"]
-
-
-# def require_role(required_role: str):
-#     def dependency(user=Depends(get_current_user)):
-#         role = user.get("app_role")
-
-#         if role not in ROLE_LEVELS:
-#             raise HTTPException(
-#                 status_code=status.HTTP_403_FORBIDDEN,
-#                 detail="Invalid role",
-#             )
-
-#         if ROLE_LEVELS[role] < ROLE_LEVELS[required_role]:
-#             raise HTTPException(
-#                 status_code=status.HTTP_403_FORBIDDEN,
-#                 detail="Insufficient permissions",
-#             )
-
-#         return user
-
-#     return dependency
 
 
 def get_user_id(user: dict) -> str:
@@ -159,15 +148,20 @@ def require_any_permission(required_permissions: Union[List[str], str]):
 def has_permission(user_permissions: list[str], required_permission: str) -> bool:
     """
     Checks:
+    - Global wildcard (*.*)
     - Exact match
-    - Wildcard match (e.g., users.*)
+    - Resource wildcard (e.g., users.*)
     """
+
+    # 🔥 Global wildcard
+    if "*" in user_permissions:
+        return True
 
     # Exact match
     if required_permission in user_permissions:
         return True
 
-    # Wildcard match
+    # Resource wildcard
     for perm in user_permissions:
         if perm.endswith(".*"):
             prefix = perm[:-2]
@@ -175,4 +169,3 @@ def has_permission(user_permissions: list[str], required_permission: str) -> boo
                 return True
 
     return False
-

@@ -1,5 +1,6 @@
 import { apiRequest } from "./client";
 import { Order } from "./types";
+import { ENV } from "../config/env";
 
 /* =========================
    Types
@@ -67,12 +68,56 @@ export function fetchMyOrders(): Promise<Order[]> {
 /**
  * Vendor orders (polling-safe)
  */
-export function fetchVendorOrders(signal?: AbortSignal) {
-  return apiRequest<Order[]>(
-    "/orders?scope=vendor",
-    {
-      method: "GET",
-      signal,
-    }
-  );
+
+
+export type CursorPaginatedOrders = {
+  data: Order[];
+  next_cursor: string | null;
+};
+
+
+
+export type FetchOrdersParams = {
+  scope?: "user" | "vendor";
+  status?: string;
+  sort?: "newest" | "oldest" | "highest";
+  cursor?: string | null;
+  limit?: number;
+  signal?: AbortSignal;
+};
+
+export async function fetchOrdersCursor({
+  scope = "user",
+  status,
+  sort = "newest",
+  cursor,
+  limit = 20,
+  signal,
+}: FetchOrdersParams) {
+  const params = new URLSearchParams();
+
+  params.append("scope", scope);
+  params.append("sort", sort);
+  params.append("limit", String(limit));
+
+  if (status) params.append("status", status);
+  if (cursor) params.append("cursor", cursor);
+
+  if (!ENV) {
+  throw new Error("Missing EXPO_PUBLIC_API_URL");
 }
+
+  const res = await fetch(
+    `${ENV}/orders?${params.toString()}`,
+    { signal }
+  );
+
+  if (!res.ok) {
+    throw new Error("Failed to fetch orders");
+  }
+
+  return res.json();
+}
+
+
+

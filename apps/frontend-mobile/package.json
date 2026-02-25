@@ -15,6 +15,8 @@
   "dependencies": {
     "@react-native-async-storage/async-storage": "^2.2.0",
     "@repo/ui": "workspace:^",
+    "@repo/types": "workspace:^",
+    "@repo/permissions": "workspace:^",
     "@supabase/supabase-js": "^2.89.0",
     "babel-preset-expo": "^54.0.9",
     "clsx": "^2.1.1",

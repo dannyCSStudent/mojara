@@ -8,7 +8,7 @@ type Options = {
 };
 
 export function useOrdersAdminRealtime(
-  enabled: boolean,
+  enabled: boolean = true,
   options: Options = {}
 ) {
   const [orders, setOrders] = useState<Order[]>([]);

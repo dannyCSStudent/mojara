@@ -10,14 +10,15 @@ from app.schemas.orders import (
     OrderOut,
     OrderConfirmOut,
     RefundPayload,
+    CursorPaginatedOrders,
 )
 from app.repositories.orders import (
     create_order,
     confirm_order,
     cancel_order,
     get_order_by_id,
-    get_orders_for_user,
-    get_orders_for_vendor,
+    get_orders_for_user_cursor,
+    get_orders_for_vendor_cursor,
     get_vendor_id_for_user,
     refund_order,
 )
@@ -49,22 +50,41 @@ def create_order_endpoint(
 # ==========================================================
 # 📦 LIST ORDERS (USER / VENDOR)
 # ==========================================================
-@router.get("/orders")
+@router.get("/orders", response_model=CursorPaginatedOrders)
 def list_orders_endpoint(
     scope: str = Query("user", enum=["user", "vendor"]),
+    status: str | None = Query(None),
+    sort: str = Query("newest", enum=["newest", "oldest", "highest"]),
+    cursor: str | None = Query(None),
+    limit: int = Query(20, ge=1, le=100),
     jwt: str = Depends(get_current_jwt),
-    current_user = Depends(require_permissions(["orders.read"])),
+    current_user=Depends(require_permissions(["orders.read"])),
 ):
     user_id = current_user["sub"]
 
     try:
         if scope == "vendor":
-            # Only vendors with orders.read permission can fetch vendor orders
-            _ = require_permissions("orders.vendor_read")(current_user)
             vendor_id = get_vendor_id_for_user(jwt, user_id)
-            return get_orders_for_vendor(jwt=jwt, vendor_id=vendor_id)
 
-        return get_orders_for_user(jwt=jwt, user_id=user_id)
+            result = get_orders_for_vendor_cursor(
+                jwt=jwt,
+                vendor_id=vendor_id,
+                status=status,
+                sort=sort,
+                cursor=cursor,
+                limit=limit,
+            )
+        else:
+            result = get_orders_for_user_cursor(
+                jwt=jwt,
+                user_id=user_id,
+                status=status,
+                sort=sort,
+                cursor=cursor,
+                limit=limit,
+            )
+
+        return result
 
     except HTTPException:
         raise
@@ -81,7 +101,7 @@ def get_my_orders(
     jwt: str = Depends(get_current_jwt),
     current_user = Depends(require_permissions("orders.read")),
 ):
-    return get_orders_for_user(jwt=jwt, user_id=current_user["sub"])
+    return get_orders_for_user_cursor(jwt=jwt, user_id=current_user["sub"])
 
 # ==========================================================
 # 🔍 GET ORDER DETAILS

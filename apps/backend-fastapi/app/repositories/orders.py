@@ -2,16 +2,25 @@ from app.db import get_user_client
 from fastapi import HTTPException
 from postgrest import APIError
 import httpx
+import base64
 
 
 # =========================
 # Queries
 # =========================
 
-def get_orders_for_user(jwt: str, user_id: str):
+def get_orders_for_user_cursor(
+    jwt: str,
+    user_id: str,
+    status: str | None = None,
+    sort: str = "newest",
+    cursor: str | None = None,
+    limit: int = 20,
+):
     supabase = get_user_client(jwt)
 
-    res = (
+    # Base query
+    query = (
         supabase
         .table("orders")
         .select(
@@ -32,49 +41,119 @@ def get_orders_for_user(jwt: str, user_id: str):
             """
         )
         .eq("user_id", user_id)
-        .order("created_at", desc=True)
-        .execute()
+        .limit(limit + 1)  # fetch extra to detect next page
     )
 
-    return _normalize_orders(res.data)
+    # Status filter
+    if status:
+        query = query.eq("status", status)
+
+    # Sorting
+    if sort == "newest":
+        query = query.order("created_at", desc=True).order("id", desc=True)
+    elif sort == "oldest":
+        query = query.order("created_at", desc=False).order("id", desc=False)
+    elif sort == "highest":
+        query = query.order("total", desc=True).order("id", desc=True)
+
+    # Cursor filtering
+    if cursor:
+        created_at, order_id = decode_cursor(cursor)
+
+        if sort in ["newest", "highest"]:
+            query = (
+                query
+                .lt("created_at", created_at)
+                .or_(f"created_at.eq.{created_at},id.lt.{order_id}")
+            )
+        else:  # oldest
+            query = (
+                query
+                .gt("created_at", created_at)
+                .or_(f"created_at.eq.{created_at},id.gt.{order_id}")
+            )
+
+    res = query.execute()
+    rows = res.data or []
+
+    has_more = len(rows) > limit
+    rows = rows[:limit]
+
+    next_cursor = None
+    if has_more:
+        last = rows[-1]
+        next_cursor = encode_cursor(last["created_at"], last["id"])
+
+    return {
+        "data": _normalize_orders(rows),
+        "next_cursor": next_cursor,
+    }
 
 
-def get_orders_for_vendor(jwt: str, vendor_id: str):
+def get_orders_for_vendor_cursor(
+    jwt: str,
+    vendor_id: str,
+    status: str | None = None,
+    sort: str = "newest",
+    cursor: str | None = None,
+    limit: int = 20,
+):
     supabase = get_user_client(jwt)
 
-    try:
-        res = (
-            supabase
-            .table("orders")
-            .select(
-                """
-                id,
-                market_id,
-                vendor_id,
-                user_id,
-                status,
-                total,
-                created_at,
-                order_items:order_items!order_items_order_id_fkey (
-                    product_id,
-                    quantity,
-                    products ( 
-                        name,
-                        price
-                    )
-                )
-                """
+    query = (
+        supabase
+        .table("orders")
+        .select(
+            """
+            id,
+            market_id,
+            vendor_id,
+            user_id,
+            status,
+            total,
+            created_at,
+            order_items (
+                product_id,
+                quantity,
+                unit_price,
+                products ( name )
             )
-            .eq("vendor_id", vendor_id)
-            .order("created_at", desc=True)
-            .execute()
+            """
         )
-    except httpx.ConnectError:
-        raise HTTPException(503, "Database unavailable")
-    except APIError as e:
-        raise HTTPException(500, str(e))
+        .eq("vendor_id", vendor_id)
+        .order("created_at", desc=True)
+        .order("id", desc=True)
+        .limit(limit + 1)  # fetch extra to detect next page
+    )
 
-    return _normalize_orders(res.data)
+    if status:
+        query = query.eq("status", status)
+
+    if cursor:
+        # cursor is base64 encoded created_at|id
+        created_at, order_id = decode_cursor(cursor)
+
+        query = (
+            query
+            .lt("created_at", created_at)
+            .or_(f"created_at.eq.{created_at},id.lt.{order_id}")
+        )
+
+    res = query.execute()
+    rows = res.data or []
+
+    has_more = len(rows) > limit
+    rows = rows[:limit]
+
+    next_cursor = None
+    if has_more:
+        last = rows[-1]
+        next_cursor = encode_cursor(last["created_at"], last["id"])
+
+    return {
+        "data": _normalize_orders(rows),
+        "next_cursor": next_cursor,
+    }
 
 
 def get_order_by_id(jwt: str, order_id: str, user_id: str):
@@ -307,3 +386,12 @@ def assert_user_can_view_order(order: dict, user_id: str, vendor_id: str | None)
         return  # vendor owns it
 
     raise HTTPException(403, "You are not allowed to view this order")
+
+
+def encode_cursor(created_at: str, order_id: str) -> str:
+    raw = f"{created_at}|{order_id}"
+    return base64.urlsafe_b64encode(raw.encode()).decode()
+
+def decode_cursor(cursor: str) -> tuple[str, str]:
+    decoded = base64.urlsafe_b64decode(cursor.encode()).decode()
+    return decoded.split("|")
