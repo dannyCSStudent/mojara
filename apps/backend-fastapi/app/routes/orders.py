@@ -1,10 +1,9 @@
 # routes/orders.py
-# has been audited for permissions and dependencies, and implements the following endpoints:
 from uuid import UUID
 from fastapi import APIRouter, Depends, Query, HTTPException
 from typing import List
 
-from app.core.dependencies import get_current_jwt, require_permissions
+from app.core.dependencies import get_current_jwt, require_permissions, get_current_user
 from app.schemas.orders import (
     CreateOrderPayload,
     OrderOut,
@@ -21,6 +20,7 @@ from app.repositories.orders import (
     get_orders_for_vendor_cursor,
     get_vendor_id_for_user,
     refund_order,
+    get_orders_summary,
 )
 
 router = APIRouter(tags=["orders"])
@@ -55,6 +55,7 @@ def list_orders_endpoint(
     scope: str = Query("user", enum=["user", "vendor"]),
     status: str | None = Query(None),
     sort: str = Query("newest", enum=["newest", "oldest", "highest"]),
+    search: str | None = Query(None),
     cursor: str | None = Query(None),
     limit: int = Query(20, ge=1, le=100),
     jwt: str = Depends(get_current_jwt),
@@ -66,11 +67,19 @@ def list_orders_endpoint(
         if scope == "vendor":
             vendor_id = get_vendor_id_for_user(jwt, user_id)
 
+            if not vendor_id:
+                # User is not a vendor → return empty safely
+                return {
+                    "data": [],
+                    "next_cursor": None,
+                }
+
             result = get_orders_for_vendor_cursor(
                 jwt=jwt,
                 vendor_id=vendor_id,
                 status=status,
                 sort=sort,
+                search=search,
                 cursor=cursor,
                 limit=limit,
             )
@@ -174,3 +183,39 @@ def refund_order_route(
 ):
     vendor_id = get_vendor_id_for_user(jwt, current_user["sub"])
     return refund_order(jwt=jwt, order_id=str(order_id), amount=payload.amount, reason=payload.reason)
+
+
+@router.get("/orders/summary")
+def orders_summary(
+    scope: str = Query("user"),
+    current_user: dict = Depends(get_current_user),
+):
+    try:
+        jwt = current_user["jwt"]
+        user_id = current_user["sub"]
+
+        if scope == "vendor":
+            vendor_id = get_vendor_id_for_user(jwt, user_id)
+
+            if not vendor_id:
+                return {
+                    "total_orders": 0,
+                    "pending": 0,
+                    "confirmed": 0,
+                    "canceled": 0,
+                    "total_revenue": 0,
+                }
+
+            return get_orders_summary(
+                jwt=jwt,
+                vendor_id=vendor_id,
+            )
+
+        return get_orders_summary(
+            jwt=jwt,
+            user_id=user_id,
+        )
+
+    except Exception as e:
+        print("❌ orders_summary error:", e)
+        raise HTTPException(status_code=500, detail="Failed to load summary")

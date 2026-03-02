@@ -3,6 +3,8 @@ from fastapi import HTTPException
 from postgrest import APIError
 import httpx
 import base64
+from app.db import get_user_client
+
 
 
 # =========================
@@ -94,6 +96,7 @@ def get_orders_for_vendor_cursor(
     jwt: str,
     vendor_id: str,
     status: str | None = None,
+    search: str | None = None,
     sort: str = "newest",
     cursor: str | None = None,
     limit: int = 20,
@@ -121,23 +124,41 @@ def get_orders_for_vendor_cursor(
             """
         )
         .eq("vendor_id", vendor_id)
-        .order("created_at", desc=True)
-        .order("id", desc=True)
-        .limit(limit + 1)  # fetch extra to detect next page
+        .limit(limit + 1)
     )
 
+    # ✅ Search (UUID cast to text handled in DB)
+    if search:
+        query = query.ilike("id", f"%{search}%")
+
+    # ✅ Status
     if status:
         query = query.eq("status", status)
 
+    # ✅ Sorting
+    if sort == "newest":
+        query = query.order("created_at", desc=True).order("id", desc=True)
+    elif sort == "oldest":
+        query = query.order("created_at", desc=False).order("id", desc=False)
+    elif sort == "highest":
+        query = query.order("total", desc=True).order("id", desc=True)
+
+    # ✅ Cursor
     if cursor:
-        # cursor is base64 encoded created_at|id
         created_at, order_id = decode_cursor(cursor)
 
-        query = (
-            query
-            .lt("created_at", created_at)
-            .or_(f"created_at.eq.{created_at},id.lt.{order_id}")
-        )
+        if sort in ["newest", "highest"]:
+            query = (
+                query
+                .lt("created_at", created_at)
+                .or_(f"created_at.eq.{created_at},id.lt.{order_id}")
+            )
+        else:
+            query = (
+                query
+                .gt("created_at", created_at)
+                .or_(f"created_at.eq.{created_at},id.gt.{order_id}")
+            )
 
     res = query.execute()
     rows = res.data or []
@@ -209,35 +230,34 @@ def get_order_by_id(jwt: str, order_id: str, user_id: str):
 
     # ✅ Vendor owns it
     vendor_id = get_vendor_id_for_user(jwt, user_id)
-    if order["vendor_id"] == vendor_id:
+
+    if vendor_id and order["vendor_id"] == vendor_id:
+
         return _normalize_order(order)
 
     # 🚫 Nobody else
     raise HTTPException(404, "Order not found")
 
 
-
-
 # =========================
 # Vendor resolution
 # =========================
 
-def get_vendor_id_for_user(jwt: str, user_id: str) -> str:
+def get_vendor_id_for_user(jwt: str, user_id: str) -> str | None:
     supabase = get_user_client(jwt)
-    
+
     res = (
         supabase
         .table("vendors")
         .select("id")
         .eq("user_id", user_id)
-        .single()
         .execute()
     )
 
     if not res.data:
-        raise HTTPException(403, "User is not a vendor")
+        return None
 
-    return res.data["id"]
+    return res.data[0]["id"]
 
 
 # =========================
@@ -395,3 +415,48 @@ def encode_cursor(created_at: str, order_id: str) -> str:
 def decode_cursor(cursor: str) -> tuple[str, str]:
     decoded = base64.urlsafe_b64decode(cursor.encode()).decode()
     return decoded.split("|")
+
+
+def get_orders_summary(
+    jwt: str,
+    *,
+    vendor_id: str | None = None,
+    user_id: str | None = None,
+):
+    client = get_user_client(jwt)
+
+    if vendor_id:
+        scope_column = "vendor_id"
+        scope_value = vendor_id
+    elif user_id:
+        scope_column = "user_id"
+        scope_value = user_id
+    else:
+        raise ValueError("Either vendor_id or user_id required")
+
+    result = client.rpc(
+        "orders_summary_by_scope",
+        {
+            "scope_column": scope_column,
+            "scope_value": scope_value,
+        },
+    ).execute()
+
+    if not result.data:
+        return {
+            "total_orders": 0,
+            "pending": 0,
+            "confirmed": 0,
+            "canceled": 0,
+            "total_revenue": 0,
+        }
+
+    row = result.data[0]
+
+    return {
+        "total_orders": row["total_orders"],
+        "pending": row["pending"],
+        "confirmed": row["confirmed"],
+        "canceled": row["canceled"],
+        "total_revenue": float(row["total_revenue"] or 0),
+    }

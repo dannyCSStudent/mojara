@@ -23,4 +23,7 @@ export type Permission =
   | "notifications.read"
   | "notifications.create"
   | "notifications.update"
+  | "dashboard.admin"       
+  | "dashboard.vendor"      
+  | "profile.read"; 
 

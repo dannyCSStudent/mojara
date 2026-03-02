@@ -16,6 +16,14 @@ export type CreateOrderPayload = {
   items: CreateOrderItem[];
 };
 
+export type OrdersSummary = {
+  total_orders: number;
+  pending: number;
+  confirmed: number;
+  canceled: number;
+  total_revenue: number;
+};
+
 /* =========================
    API
 ========================= */
@@ -81,43 +89,36 @@ export type FetchOrdersParams = {
   scope?: "user" | "vendor";
   status?: string;
   sort?: "newest" | "oldest" | "highest";
+  search?: string;
   cursor?: string | null;
   limit?: number;
   signal?: AbortSignal;
 };
 
-export async function fetchOrdersCursor({
-  scope = "user",
-  status,
-  sort = "newest",
-  cursor,
-  limit = 20,
-  signal,
-}: FetchOrdersParams) {
-  const params = new URLSearchParams();
+export async function fetchOrdersCursor(
+  params: FetchOrdersParams
+): Promise<CursorPaginatedOrders> {
+  const query = new URLSearchParams();
 
-  params.append("scope", scope);
-  params.append("sort", sort);
-  params.append("limit", String(limit));
+  if (params.scope) query.append("scope", params.scope);
+  if (params.status) query.append("status", params.status);
+  if (params.sort) query.append("sort", params.sort);
+  if (params.search) query.append("search", params.search);
+  if (params.cursor) query.append("cursor", params.cursor);
+  if (params.limit) query.append("limit", String(params.limit));
 
-  if (status) params.append("status", status);
-  if (cursor) params.append("cursor", cursor);
+  const endpoint = `/orders?${query.toString()}`;
 
-  if (!ENV) {
-  throw new Error("Missing EXPO_PUBLIC_API_URL");
+  console.log("Fetching orders from:", `${ENV.API_URL}${endpoint}`);
+
+  return apiRequest<CursorPaginatedOrders>(endpoint);
 }
 
-  const res = await fetch(
-    `${ENV}/orders?${params.toString()}`,
-    { signal }
+
+export async function fetchOrdersSummary(
+  scope: "vendor" | "user"
+): Promise<OrdersSummary> {
+  return apiRequest<OrdersSummary>(
+    `/orders/summary?scope=${scope}`
   );
-
-  if (!res.ok) {
-    throw new Error("Failed to fetch orders");
-  }
-
-  return res.json();
 }
-
-
-

@@ -1,3 +1,4 @@
+
 import {
   View,
   Text,
@@ -14,6 +15,8 @@ import { fetchOrdersCursor } from "../../api/orders";
 const STATUSES = ["all", "pending", "confirmed", "canceled"] as const;
 type SortOption = "newest" | "oldest" | "highest";
 
+console.log("OrdersScreen component mounted");
+
 export default function OrdersScreen() {
   const router = useRouter();
   const { status } = useLocalSearchParams<{ status?: string }>();
@@ -28,34 +31,47 @@ export default function OrdersScreen() {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [query, setQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
   const [sort, setSort] = useState<SortOption>("newest");
 
   const activeStatus = status ?? "all";
 
+  // ✅ Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedQuery(query.trim());
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [query]);
+
   const loadInitial = useCallback(async () => {
-  setLoading(true);
-
-  const res = await fetchOrdersCursor({
-    scope: isAdmin ? "vendor" : "user",
-    status: activeStatus === "all" ? undefined : activeStatus,
-    sort,
-    limit: 20,
-  });
-
-  setOrders(res.data);
-  setCursor(res.next_cursor);
-  setLoading(false);
-}, [isAdmin, activeStatus, sort]);
-
-  async function loadMore() {
-    if (!cursor || loadingMore) return;
-
-    setLoadingMore(true);
+    setLoading(true);
 
     const res = await fetchOrdersCursor({
       scope: isAdmin ? "vendor" : "user",
       status: activeStatus === "all" ? undefined : activeStatus,
       sort,
+      search: debouncedQuery || undefined,
+      limit: 20,
+    });
+
+    setOrders(res.data);
+    setCursor(res.next_cursor);
+    setLoading(false);
+  }, [isAdmin, activeStatus, sort, debouncedQuery]);
+
+  const loadMore = useCallback(async () => {
+    if (!cursor || loadingMore) return;
+
+    setLoadingMore(true);
+    console.log("Loading more orders with cursor:", cursor);
+
+    const res = await fetchOrdersCursor({
+      scope: isAdmin ? "vendor" : "user",
+      status: activeStatus === "all" ? undefined : activeStatus,
+      sort,
+      search: debouncedQuery || undefined,
       cursor,
       limit: 20,
     });
@@ -63,12 +79,11 @@ export default function OrdersScreen() {
     setOrders((prev) => [...prev, ...res.data]);
     setCursor(res.next_cursor);
     setLoadingMore(false);
-  }
+  }, [cursor, loadingMore, isAdmin, activeStatus, sort, debouncedQuery]);
 
   useEffect(() => {
     loadInitial();
   }, [loadInitial]);
-
 
   function setFilter(next: string) {
     if (next === "all") {
@@ -80,12 +95,6 @@ export default function OrdersScreen() {
       });
     }
   }
-
-  const searched = query.trim()
-    ? orders.filter((o) =>
-        o.id.toLowerCase().includes(query.toLowerCase())
-      )
-    : orders;
 
   if (!isAuthenticated) {
     return (
@@ -99,6 +108,16 @@ export default function OrdersScreen() {
     return (
       <View className="flex-1 items-center justify-center bg-white">
         <ActivityIndicator />
+      </View>
+    );
+  }
+
+  if (!loading && orders.length === 0) {
+    return (
+      <View className="flex-1 items-center justify-center bg-white">
+        <Text className="text-lg text-center">
+          No orders found
+        </Text>
       </View>
     );
   }
@@ -167,7 +186,7 @@ export default function OrdersScreen() {
       )}
 
       <FlatList
-        data={searched}
+        data={orders}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <Pressable
