@@ -69,12 +69,23 @@ def get_current_user(
                 detail="Invalid role",
             )
 
+        # --------------------------------------------------
+        # 🔐 Extract Vendor ID (if present)
+        # --------------------------------------------------
+
+        vendor_id = payload.get("app_metadata", {}).get("vendor_id")
+
+        # --------------------------------------------------
         # Attach normalized fields
+        # --------------------------------------------------
+
         payload["id"] = payload["sub"]
         payload["_jwt"] = token
         payload["app_role"] = role
+        payload["vendor_id"] = vendor_id  # 🚀 new
 
         return payload
+
 
     except JWTError as e:
         raise HTTPException(

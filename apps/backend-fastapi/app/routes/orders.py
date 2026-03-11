@@ -18,7 +18,6 @@ from app.repositories.orders import (
     get_order_by_id,
     get_orders_for_user_cursor,
     get_orders_for_vendor_cursor,
-    get_vendor_id_for_user,
     refund_order,
     get_orders_summary,
 )
@@ -65,7 +64,7 @@ def list_orders_endpoint(
 
     try:
         if scope == "vendor":
-            vendor_id = get_vendor_id_for_user(jwt, user_id)
+            vendor_id = current_user["vendor_id"]
 
             if not vendor_id:
                 # User is not a vendor → return empty safely
@@ -121,7 +120,12 @@ def get_order(
     jwt: str = Depends(get_current_jwt),
     current_user = Depends(require_permissions("orders.read")),
 ):
-    return get_order_by_id(jwt=jwt, order_id=str(order_id), user_id=current_user["sub"])
+    return get_order_by_id(
+    jwt=jwt,
+    order_id=str(order_id),
+    user_id=current_user["sub"],
+    vendor_id=current_user.get("vendor_id"),
+)
 
 # ==========================================================
 # ✅ CONFIRM ORDER (VENDOR)
@@ -133,7 +137,11 @@ def confirm_order_endpoint(
     current_user = Depends(require_permissions("orders.confirm")),
 ):
     user_id = current_user["sub"]
-    vendor_id = get_vendor_id_for_user(jwt, user_id)
+    vendor_id = current_user.get("vendor_id")
+
+    if not vendor_id:
+        raise HTTPException(403, "Vendor account required")
+
 
     try:
         return confirm_order(jwt=jwt, order_id=order_id, vendor_id=vendor_id)
@@ -157,7 +165,7 @@ def cancel_order_endpoint(
     current_user = Depends(require_permissions("orders.cancel")),
 ):
     user_id = current_user["sub"]
-    vendor_id = get_vendor_id_for_user(jwt, user_id)
+    vendor_id = current_user["vendor_id"]
 
     try:
         return cancel_order(jwt=jwt, order_id=order_id, vendor_id=vendor_id)
@@ -181,21 +189,28 @@ def refund_order_route(
     jwt: str = Depends(get_current_jwt),
     current_user = Depends(require_permissions("orders.refund")),
 ):
-    vendor_id = get_vendor_id_for_user(jwt, current_user["sub"])
-    return refund_order(jwt=jwt, order_id=str(order_id), amount=payload.amount, reason=payload.reason)
+    vendor_id = current_user["vendor_id"]
+
+    return refund_order(
+        jwt=jwt,
+        order_id=str(order_id),
+        amount=payload.amount,
+        reason=payload.reason,
+        vendor_id=vendor_id,
+    )
 
 
 @router.get("/orders/summary")
 def orders_summary(
     scope: str = Query("user"),
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_permissions("orders.read")),
 ):
     try:
         jwt = current_user["jwt"]
         user_id = current_user["sub"]
 
         if scope == "vendor":
-            vendor_id = get_vendor_id_for_user(jwt, user_id)
+            vendor_id = current_user["vendor_id"]
 
             if not vendor_id:
                 return {

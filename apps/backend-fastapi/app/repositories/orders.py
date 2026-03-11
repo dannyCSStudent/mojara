@@ -1,10 +1,10 @@
+# repositories/orders.py
+
 from app.db import get_user_client
 from fastapi import HTTPException
 from postgrest import APIError
 import httpx
 import base64
-from app.db import get_user_client
-
 
 
 # =========================
@@ -78,7 +78,7 @@ def get_orders_for_user_cursor(
     res = query.execute()
     rows = res.data or []
 
-    has_more = len(rows) > limit
+    has_more = len(rows) == limit + 1
     rows = rows[:limit]
 
     next_cursor = None
@@ -163,7 +163,7 @@ def get_orders_for_vendor_cursor(
     res = query.execute()
     rows = res.data or []
 
-    has_more = len(rows) > limit
+    has_more = len(rows) == limit + 1
     rows = rows[:limit]
 
     next_cursor = None
@@ -177,7 +177,7 @@ def get_orders_for_vendor_cursor(
     }
 
 
-def get_order_by_id(jwt: str, order_id: str, user_id: str):
+def get_order_by_id(jwt: str, order_id: str, user_id: str, vendor_id: str | None):
     supabase = get_user_client(jwt)
 
     res = (
@@ -224,40 +224,11 @@ def get_order_by_id(jwt: str, order_id: str, user_id: str):
 
     order = res.data
 
-    # ✅ Customer owns it
-    if order["user_id"] == user_id:
-        return _normalize_order(order)
+    # permission check
+    assert_user_can_view_order(order, user_id, vendor_id)
 
-    # ✅ Vendor owns it
-    vendor_id = get_vendor_id_for_user(jwt, user_id)
+    return _normalize_order(order)
 
-    if vendor_id and order["vendor_id"] == vendor_id:
-
-        return _normalize_order(order)
-
-    # 🚫 Nobody else
-    raise HTTPException(404, "Order not found")
-
-
-# =========================
-# Vendor resolution
-# =========================
-
-def get_vendor_id_for_user(jwt: str, user_id: str) -> str | None:
-    supabase = get_user_client(jwt)
-
-    res = (
-        supabase
-        .table("vendors")
-        .select("id")
-        .eq("user_id", user_id)
-        .execute()
-    )
-
-    if not res.data:
-        return None
-
-    return res.data[0]["id"]
 
 
 # =========================
@@ -377,7 +348,7 @@ def _normalize_order(order):
 # Refunds
 # =========================
 
-def refund_order(jwt: str, order_id: str, amount: float, reason: str):
+def refund_order(jwt: str, order_id: str, amount: float, reason: str, vendor_id: str):
     supabase = get_user_client(jwt)
 
     res = supabase.rpc(
@@ -414,7 +385,9 @@ def encode_cursor(created_at: str, order_id: str) -> str:
 
 def decode_cursor(cursor: str) -> tuple[str, str]:
     decoded = base64.urlsafe_b64decode(cursor.encode()).decode()
-    return decoded.split("|")
+    created_at, order_id = decoded.split("|")
+    return created_at, order_id
+
 
 
 def get_orders_summary(
