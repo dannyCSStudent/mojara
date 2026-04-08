@@ -29,22 +29,6 @@ def list_vendors(
 
 
 # -----------------------------
-# Get single vendor
-# -----------------------------
-@router.get("/{vendor_id}", response_model=VendorOut)
-def read_vendor(
-    vendor_id: UUID,
-    current_user=Depends(require_permissions("vendors.read"))
-):
-    vendor = get_vendor(vendor_id, current_user["_jwt"])
-
-    if not vendor:
-        raise HTTPException(status_code=404, detail="Vendor not found")
-
-    return vendor
-
-
-# -----------------------------
 # Create vendor
 # -----------------------------
 @router.post("", response_model=VendorOut)
@@ -112,3 +96,19 @@ def get_my_vendor(current_user=Depends(get_current_user)):
         raise HTTPException(status_code=404, detail="Vendor not found")
 
     return {"vendor_id": vendor_id}
+
+
+# -----------------------------
+# Get single vendor
+# -----------------------------
+@router.get("/{vendor_id}", response_model=VendorOut)
+def read_vendor(
+    vendor_id: UUID,
+    current_user=Depends(require_permissions("vendors.read"))
+):
+    vendor = get_vendor(vendor_id, current_user["_jwt"])
+
+    if not vendor:
+        raise HTTPException(status_code=404, detail="Vendor not found")
+
+    return vendor

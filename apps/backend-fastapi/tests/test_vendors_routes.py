@@ -2,14 +2,32 @@ import unittest
 from unittest.mock import patch
 from uuid import UUID
 
+from fastapi import FastAPI
 from fastapi import HTTPException
+from fastapi.testclient import TestClient
 
+from app.core.dependencies import get_current_user
 from app.routes.markets import create_vendor_for_market
-from app.routes.vendors import create_vendor_route
+from app.routes.vendors import create_vendor_route, router as vendors_router
 from app.schemas.vendors import VendorCreate
 
 
 class VendorRoutesTest(unittest.TestCase):
+    def test_get_my_vendor_route_is_not_shadowed_by_vendor_id_route(self):
+        app = FastAPI()
+        app.include_router(vendors_router)
+        app.dependency_overrides[get_current_user] = lambda: {
+            "_jwt": "token",
+            "id": "user-1",
+            "vendor_id": "vendor-1",
+        }
+
+        client = TestClient(app)
+        response = client.get("/vendors/me")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"vendor_id": "vendor-1"})
+
     @patch("app.routes.vendors.create_vendor")
     def test_create_vendor_route_passes_jwt_first(self, mock_create_vendor):
         mock_create_vendor.return_value = {
