@@ -264,49 +264,52 @@ def get_order_by_id(
 ):
     supabase = get_service_client() if is_admin else get_user_client(jwt)
 
-    res = (
-        supabase
-        .table("orders")
-        .select(
-            """
-            id,
-            market_id,
-            vendor_id,
-            user_id,
-            status,
-            total,
-            created_at,
-            order_items (
-                product_id,
-                quantity,
-                unit_price,
-                line_total,
-                products ( name )
-            ),
-            refunds (
+    try:
+        res = (
+            supabase
+            .table("orders")
+            .select(
+                """
                 id,
-                amount,
-                reason,
-                created_at
-            ),
-            order_events (
-                id,
-                event,
-                amount,
-                reason,
-                created_at
+                market_id,
+                vendor_id,
+                user_id,
+                status,
+                total,
+                created_at,
+                order_items (
+                    product_id,
+                    quantity,
+                    unit_price,
+                    line_total,
+                    products ( name )
+                ),
+                refunds (
+                    id,
+                    amount,
+                    reason,
+                    created_at
+                ),
+                order_events (
+                    id,
+                    event,
+                    amount,
+                    reason,
+                    created_at
+                )
+                """
             )
-            """
+            .eq("id", order_id)
+            .limit(1)
+            .execute()
         )
-        .eq("id", order_id)
-        .single()
-        .execute()
-    )
+    except APIError:
+        raise HTTPException(404, "Order not found")
 
     if not res.data:
         raise HTTPException(404, "Order not found")
 
-    order = res.data
+    order = res.data[0]
 
     # permission check
     assert_user_can_view_order(order, user_id, vendor_id, is_admin=is_admin)

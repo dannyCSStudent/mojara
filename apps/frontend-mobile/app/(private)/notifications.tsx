@@ -15,6 +15,7 @@ import {
 import { useFocusEffect } from 'expo-router';
 import { useAppStore } from '../../store/useAppStore';
 import { fetchVendors, Vendor } from '../../api/vendors';
+import { normalizeNotificationMarketSelection } from '../../utils/notificationPreferencesState';
 
 export default function NotificationsScreen() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -183,10 +184,20 @@ export default function NotificationsScreen() {
   }
 
   useEffect(() => {
-    if (availableMarkets.length > 0 && !selectedMarketId) {
-      setSelectedMarketId(availableMarkets[0].id);
+    const normalized = normalizeNotificationMarketSelection({
+      availableMarketIds: availableMarkets.map((market) => market.id),
+      selectedMarketId,
+      preferencesMarketFilter,
+    });
+
+    if (normalized.selectedMarketId !== selectedMarketId) {
+      setSelectedMarketId(normalized.selectedMarketId);
     }
-  }, [availableMarkets, selectedMarketId]);
+
+    if (normalized.preferencesMarketFilter !== preferencesMarketFilter) {
+      setPreferencesMarketFilter(normalized.preferencesMarketFilter);
+    }
+  }, [availableMarkets, preferencesMarketFilter, selectedMarketId]);
 
   useEffect(() => {
     if (!selectedMarketId) {

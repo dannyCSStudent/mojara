@@ -6,6 +6,7 @@ import {
   deleteMarketSubscription,
   fetchMarketSubscriptions,
 } from '../api/marketSubscriptions';
+import { applyMarketSubscriptionToggle } from '../utils/marketSubscriptionsState';
 import { supabase } from '../lib/supabase';
 import { setApiAuthToken } from '../api/client';
 import { storage } from './storage';
@@ -134,38 +135,21 @@ export const useAppStore = create<AppState>()(
         if (!user) return;
 
         const state = get();
-        const isSubscribed = state.subscriptions.includes(marketId);
         const previousSubscriptions = state.subscriptions;
         const previousActiveMarketId = state.activeMarketId;
+        const nextState = applyMarketSubscriptionToggle({
+          subscriptions: state.subscriptions,
+          activeMarketId: state.activeMarketId,
+          marketId,
+        });
 
-        // Optimistic update
-        set((prev) => {
-          let updatedSubs: string[];
-
-          if (isSubscribed) {
-            updatedSubs = prev.subscriptions.filter((id) => id !== marketId);
-          } else {
-            updatedSubs = [...prev.subscriptions, marketId];
-          }
-
-          let updatedActive = prev.activeMarketId;
-
-          if (isSubscribed && prev.activeMarketId === marketId) {
-            updatedActive = null;
-          }
-
-          if (!updatedActive && updatedSubs.length > 0) {
-            updatedActive = updatedSubs[0];
-          }
-
-          return {
-            subscriptions: updatedSubs,
-            activeMarketId: updatedActive,
-          };
+        set({
+          subscriptions: nextState.subscriptions,
+          activeMarketId: nextState.activeMarketId,
         });
 
         try {
-          if (isSubscribed) {
+          if (nextState.isSubscribed) {
             await deleteMarketSubscription(marketId);
           } else {
             await createMarketSubscription(marketId);

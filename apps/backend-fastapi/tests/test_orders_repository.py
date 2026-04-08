@@ -7,6 +7,7 @@ from app.repositories.orders import (
     assert_user_can_view_order,
     decode_cursor,
     encode_cursor,
+    get_order_by_id,
     refund_order,
 )
 
@@ -49,6 +50,30 @@ class OrdersRepositoryTest(unittest.TestCase):
 
         self.assertEqual(created_at, "2026-03-23T10:00:00Z")
         self.assertEqual(order_id, "order-1")
+
+    @patch("app.repositories.orders.get_user_client")
+    def test_get_order_by_id_returns_404_when_missing(self, mock_get_user_client):
+        query = Mock()
+        query.eq.return_value = query
+        query.limit.return_value = query
+        query.execute.return_value = Mock(data=[])
+
+        table = Mock()
+        table.select.return_value = query
+
+        client = Mock()
+        client.table.return_value = table
+        mock_get_user_client.return_value = client
+
+        with self.assertRaises(HTTPException) as ctx:
+            get_order_by_id(
+                jwt="token",
+                order_id="missing-order",
+                user_id="user-1",
+                vendor_id=None,
+            )
+
+        self.assertEqual(ctx.exception.status_code, 404)
 
     @patch("app.repositories.orders.get_user_client")
     def test_refund_order_passes_vendor_id_to_rpc(self, mock_get_user_client):

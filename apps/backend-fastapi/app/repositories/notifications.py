@@ -80,16 +80,20 @@ def create_subscription(jwt: str, user_id: str, payload: dict):
 def delete_subscription(jwt: str, subscription_id: str, user_id: str):
     supabase = get_user_client(jwt)
 
-    # ensure ownership
-    existing = (
-        supabase
-        .table("notification_subscriptions")
-        .select("id")
-        .eq("id", subscription_id)
-        .eq("user_id", user_id)
-        .single()
-        .execute()
-    )
+    try:
+        existing = (
+            supabase
+            .table("notification_subscriptions")
+            .select("id")
+            .eq("id", subscription_id)
+            .eq("user_id", user_id)
+            .limit(1)
+            .execute()
+        )
+    except httpx.ConnectError:
+        raise HTTPException(503, "Database unavailable")
+    except APIError as e:
+        raise HTTPException(500, str(e))
 
     if not existing.data:
         raise HTTPException(404, "Subscription not found")
@@ -126,16 +130,20 @@ def get_user_notifications(jwt: str, user_id: str):
 def mark_notification_read(jwt: str, notification_id: str, user_id: str):
     supabase = get_user_client(jwt)
 
-    # ensure ownership
-    existing = (
-        supabase
-        .table("notifications")
-        .select("id")
-        .eq("id", notification_id)
-        .eq("user_id", user_id)
-        .single()
-        .execute()
-    )
+    try:
+        existing = (
+            supabase
+            .table("notifications")
+            .select("id")
+            .eq("id", notification_id)
+            .eq("user_id", user_id)
+            .limit(1)
+            .execute()
+        )
+    except httpx.ConnectError:
+        raise HTTPException(503, "Database unavailable")
+    except APIError as e:
+        raise HTTPException(500, str(e))
 
     if not existing.data:
         raise HTTPException(404, "Notification not found")

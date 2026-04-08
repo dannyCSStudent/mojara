@@ -88,17 +88,19 @@ def lock_price_agreement(price_id: UUID, jwt: str):
             .from_("price_agreements")
             .select("id, status")
             .eq("id", str(price_id))
-            .single()
+            .limit(1)
             .execute()
         )
     except APIError as e:
-        raise HTTPException(500, str(e))
+        raise HTTPException(404, "Price agreement not found")
 
     if not res.data:
         raise HTTPException(404, "Price agreement not found")
 
-    if res.data["status"] != "draft":
-        raise HTTPException(400, f"Cannot lock price with status '{res.data['status']}'")
+    agreement = res.data[0]
+
+    if agreement["status"] != "draft":
+        raise HTTPException(400, f"Cannot lock price with status '{agreement['status']}'")
 
     try:
         supabase.from_("price_agreements").update(

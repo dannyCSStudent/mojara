@@ -1,5 +1,6 @@
 from app.db import get_user_client
 from uuid import UUID
+from postgrest import APIError
 
 
 # -----------------------------
@@ -25,16 +26,22 @@ def get_vendors(jwt: str):
 def get_vendor(vendor_id: UUID, jwt: str):
     supabase = get_user_client(jwt)
 
-    res = (
-        supabase
-        .table("vendors")
-        .select("*")
-        .eq("id", str(vendor_id))
-        .single()
-        .execute()
-    )
+    try:
+        res = (
+            supabase
+            .table("vendors")
+            .select("*")
+            .eq("id", str(vendor_id))
+            .limit(1)
+            .execute()
+        )
+    except APIError:
+        return None
 
-    return res.data
+    if not res.data:
+        return None
+
+    return res.data[0]
 
 
 # -----------------------------

@@ -42,17 +42,19 @@ def create_market_subscription(jwt: str, user_id: str, market_id: str):
         raise HTTPException(503, "Database unavailable")
     except APIError as exc:
         message = str(exc)
-        if "duplicate" in message.lower():
+        lowered = message.lower()
+        if "duplicate" in lowered or "unique" in lowered:
             existing = (
                 supabase
                 .table("market_subscriptions")
                 .select("market_id, created_at")
                 .eq("user_id", user_id)
                 .eq("market_id", market_id)
-                .single()
+                .limit(1)
                 .execute()
             )
-            return existing.data
+            if existing.data:
+                return existing.data[0]
         raise HTTPException(500, message)
 
     if not result.data:
@@ -64,15 +66,20 @@ def create_market_subscription(jwt: str, user_id: str, market_id: str):
 def delete_market_subscription(jwt: str, user_id: str, market_id: str):
     supabase = get_user_client(jwt)
 
-    existing = (
-        supabase
-        .table("market_subscriptions")
-        .select("market_id")
-        .eq("user_id", user_id)
-        .eq("market_id", market_id)
-        .single()
-        .execute()
-    )
+    try:
+        existing = (
+            supabase
+            .table("market_subscriptions")
+            .select("market_id")
+            .eq("user_id", user_id)
+            .eq("market_id", market_id)
+            .limit(1)
+            .execute()
+        )
+    except httpx.ConnectError:
+        raise HTTPException(503, "Database unavailable")
+    except APIError as exc:
+        raise HTTPException(500, str(exc))
 
     if not existing.data:
         raise HTTPException(404, "Market subscription not found")

@@ -1,6 +1,7 @@
 import { ENV } from '../config/env';
 import { useAppStore } from '../store/useAppStore';
 import { supabase } from '../lib/supabase';
+import { getApiErrorMessage } from '../utils/apiErrorMessage';
 
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
 
@@ -70,7 +71,7 @@ export async function apiRequest<T>(endpoint: string, options: RequestOptions = 
 
     try {
       const data = await res.json();
-      errorMessage = data?.detail || JSON.stringify(data);
+      errorMessage = getApiErrorMessage(data, errorMessage);
     } catch {
       try {
         errorMessage = await res.text();

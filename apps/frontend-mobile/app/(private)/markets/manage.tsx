@@ -14,12 +14,15 @@ export default function ManageMarketsScreen() {
   const loadMarkets = useAppStore((s) => s.loadMarkets);
   const toggleMarketSubscription = useAppStore((s) => s.toggleMarketSubscription);
   const [search, setSearch] = useState('');
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    loadMarkets();
+    loadMarkets().catch((error: any) => {
+      setErrorMessage(error?.message ?? 'Failed to load markets.');
+    });
   }, [loadMarkets]);
 
-  function handleToggle(marketId: string, isSubscribed: boolean) {
+  async function handleToggle(marketId: string, isSubscribed: boolean) {
     if (isSubscribed && subscriptions.length === 1) {
       Alert.alert(
         'At least one market required',
@@ -28,11 +31,11 @@ export default function ManageMarketsScreen() {
       return;
     }
 
-    toggleMarketSubscription(marketId);
-
-    // If user unsubscribes from active market → reset active
-    if (isSubscribed && activeMarketId === marketId) {
-      setActiveMarket(null);
+    try {
+      setErrorMessage(null);
+      await toggleMarketSubscription(marketId);
+    } catch (error: any) {
+      setErrorMessage(error?.message ?? 'Failed to update market subscriptions.');
     }
   }
 
@@ -68,6 +71,14 @@ export default function ManageMarketsScreen() {
           />
         </View>
 
+        {errorMessage ? (
+          <View className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 dark:border-red-900 dark:bg-red-950">
+            <AppText variant="caption" className="text-red-700 dark:text-red-300">
+              {errorMessage}
+            </AppText>
+          </View>
+        ) : null}
+
         <ScrollView showsVerticalScrollIndicator={false}>
           {filteredMarkets.length === 0 ? (
             <EmptyState title="No Matching Markets" description="Try a different search term." />
@@ -80,7 +91,7 @@ export default function ManageMarketsScreen() {
                 <View key={market.id} className="mb-4">
                   {/* MARKET CARD */}
                   <Pressable
-                    onPress={() => handleToggle(market.id, isSubscribed)}
+                    onPress={() => void handleToggle(market.id, isSubscribed)}
                     className={`rounded-2xl border p-5 ${
                       isSubscribed
                         ? 'border-blue-600 bg-blue-600'

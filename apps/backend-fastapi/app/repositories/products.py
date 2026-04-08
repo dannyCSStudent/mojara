@@ -2,6 +2,7 @@ from app.db import get_user_client
 from app.schemas.products import ProductBulkUpdateItem
 from typing import List
 from fastapi import HTTPException
+from postgrest import APIError
 
 def list_products(jwt: str):
     supabase = get_user_client(jwt)
@@ -11,15 +12,22 @@ def list_products(jwt: str):
 
 def get_product_by_id(jwt: str, product_id: str):
     supabase = get_user_client(jwt)
-    res = (
-        supabase
-        .table("products")
-        .select("*")
-        .eq("id", product_id)
-        .single()
-        .execute()
-    )
-    return res.data
+    try:
+        res = (
+            supabase
+            .table("products")
+            .select("*")
+            .eq("id", product_id)
+            .limit(1)
+            .execute()
+        )
+    except APIError:
+        return None
+
+    if not res.data:
+        return None
+
+    return res.data[0]
 
 
 def create_product(jwt: str, payload: dict):
@@ -275,4 +283,3 @@ def decrement_inventory(
         )
 
     return res.data[0]
-

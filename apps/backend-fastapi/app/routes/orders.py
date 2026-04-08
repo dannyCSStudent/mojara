@@ -37,13 +37,13 @@ def create_order_endpoint(
     vendor_id: UUID,
     payload: CreateOrderPayload,
     jwt: str = Depends(get_current_jwt),
-    _=Depends(require_permissions("orders.create")),
+    current_user = Depends(require_permissions("orders.create")),
 ):
     return create_order(
         jwt=jwt,
         market_id=str(market_id),
         vendor_id=str(vendor_id),
-        customer_id=str(payload.user_id),
+        customer_id=current_user["sub"],
         items=[{"product_id": str(i.product_id), "quantity": i.quantity} for i in payload.items],
     )
 

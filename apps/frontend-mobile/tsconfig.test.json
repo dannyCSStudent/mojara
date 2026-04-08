@@ -1,6 +1,13 @@
 {
   "extends": "./tsconfig.json",
-  "include": ["utils/adminNavigation.ts", "utils/adminUsersViewState.ts"],
+  "include": [
+    "utils/adminNavigation.ts",
+    "utils/adminUsersViewState.ts",
+    "utils/marketSubscriptionsState.ts",
+    "utils/notificationPreferencesState.ts",
+    "utils/onboardingSubscriptions.ts",
+    "utils/apiErrorMessage.ts"
+  ],
   "exclude": [],
   "compilerOptions": {
     "outDir": "/tmp/mojara-frontend-mobile-test-dist",

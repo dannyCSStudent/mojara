@@ -4,7 +4,8 @@ import { useRouter } from 'expo-router';
 import { useAppStore } from '../../store/useAppStore';
 import { AppText } from '../../components/AppText';
 import { Screen } from '../../components/Screen';
-import { createMarketSubscription } from '../../api/marketSubscriptions';
+import { fetchMarketSubscriptions, createMarketSubscription } from '../../api/marketSubscriptions';
+import { getMissingMarketSubscriptions } from '../../utils/onboardingSubscriptions';
 
 export default function OnboardingScreen() {
   const router = useRouter();
@@ -14,9 +15,12 @@ export default function OnboardingScreen() {
 
   const [selectedMarkets, setSelectedMarkets] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
-    loadMarkets();
+    loadMarkets().catch((err: any) => {
+      setLoadError(err?.message ?? 'Failed to load markets.');
+    });
   }, [loadMarkets]);
 
   function toggleMarket(id: string) {
@@ -33,6 +37,7 @@ export default function OnboardingScreen() {
 
     try {
       setLoading(true);
+      setLoadError(null);
 
       const user = useAppStore.getState().user;
       if (!user) {
@@ -40,7 +45,15 @@ export default function OnboardingScreen() {
         return;
       }
 
-      await Promise.all(selectedMarkets.map((marketId) => createMarketSubscription(marketId)));
+      const existingSubscriptions = await fetchMarketSubscriptions();
+      const missingMarketIds = getMissingMarketSubscriptions({
+        selectedMarketIds: selectedMarkets,
+        existingMarketIds: existingSubscriptions.map((subscription) => subscription.market_id),
+      });
+
+      for (const marketId of missingMarketIds) {
+        await createMarketSubscription(marketId);
+      }
 
       await useAppStore.getState().loadSubscriptions();
 
@@ -64,6 +77,14 @@ export default function OnboardingScreen() {
         <AppText variant="body" className="mb-8">
           Select the markets you want to receive real-time alerts for.
         </AppText>
+
+        {loadError ? (
+          <View className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 dark:border-red-900 dark:bg-red-950">
+            <AppText variant="caption" className="text-red-700 dark:text-red-300">
+              {loadError}
+            </AppText>
+          </View>
+        ) : null}
 
         {/* Market List */}
         <ScrollView className="flex-1">

@@ -4,9 +4,10 @@ from unittest.mock import patch
 from fastapi import HTTPException
 from uuid import UUID
 
-from app.schemas.orders import RefundPayload
+from app.schemas.orders import CreateOrderPayload, RefundPayload
 from app.routes.orders import (
     cancel_order_endpoint,
+    create_order_endpoint,
     get_order,
     list_orders_endpoint,
     orders_summary,
@@ -15,6 +16,44 @@ from app.routes.orders import (
 
 
 class OrdersRoutesTest(unittest.TestCase):
+    @patch("app.routes.orders.create_order")
+    def test_create_order_uses_authenticated_user_instead_of_payload_user(self, mock_create_order):
+        mock_create_order.return_value = {"id": "order-1"}
+
+        result = create_order_endpoint(
+            market_id=UUID("00000000-0000-0000-0000-000000000010"),
+            vendor_id=UUID("00000000-0000-0000-0000-000000000020"),
+            payload=CreateOrderPayload(
+                user_id=UUID("00000000-0000-0000-0000-000000000030"),
+                items=[
+                    {
+                        "product_id": UUID("00000000-0000-0000-0000-000000000040"),
+                        "quantity": 2,
+                    }
+                ],
+            ),
+            jwt="token",
+            current_user={
+                "sub": "authenticated-user",
+                "app_role": "user",
+                "_jwt": "token",
+            },
+        )
+
+        self.assertEqual(result["id"], "order-1")
+        mock_create_order.assert_called_once_with(
+            jwt="token",
+            market_id="00000000-0000-0000-0000-000000000010",
+            vendor_id="00000000-0000-0000-0000-000000000020",
+            customer_id="authenticated-user",
+            items=[
+                {
+                    "product_id": "00000000-0000-0000-0000-000000000040",
+                    "quantity": 2,
+                }
+            ],
+        )
+
     @patch("app.routes.orders.get_orders_for_admin_cursor")
     def test_admin_scope_uses_admin_query(self, mock_get_orders_for_admin_cursor):
         mock_get_orders_for_admin_cursor.return_value = {
