@@ -12,6 +12,16 @@ interface RequestOptions {
   signal?: AbortSignal;
 }
 
+export class ApiError extends Error {
+  status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+  }
+}
+
 /* =========================
    Auth token injection
 ========================= */
@@ -59,7 +69,7 @@ export async function apiRequest<T>(endpoint: string, options: RequestOptions = 
       console.error('Error during forced sign-out', err);
     }
 
-    throw new Error('Session expired. Please log in again.');
+    throw new ApiError('Session expired. Please log in again.', 401);
   }
 
   /* =========================
@@ -80,7 +90,7 @@ export async function apiRequest<T>(endpoint: string, options: RequestOptions = 
       }
     }
 
-    throw new Error(errorMessage);
+    throw new ApiError(errorMessage, res.status);
   }
 
   /* =========================

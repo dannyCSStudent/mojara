@@ -7,19 +7,27 @@ import { Order } from '../../../api/types';
 import { usePolling } from '../../../hooks/usePolling';
 import { issueRefund } from '../../../api/refunds';
 import { formatOrderEvent } from '../../../utils/orderEvents';
+import { useAppStore } from '../../../store/useAppStore';
+import { ApiError } from '../../../api/client';
 
 export default function OrderDetailsScreen() {
   const { orderId } = useLocalSearchParams<{ orderId: string }>();
+  const vendorId = useAppStore((s) => s.vendorId);
+  const user = useAppStore((s) => s.user);
 
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [canceling, setCanceling] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [notFound, setNotFound] = useState(false);
 
   /* ---------- Status ---------- */
   const status = order?.status;
   const isPending = status === 'pending';
   const isConfirmed = status === 'confirmed';
   const isCanceled = status === 'canceled';
+  const canManageOrder =
+    user?.app_role === 'vendor' && Boolean(vendorId) && vendorId === order?.vendor_id;
 
   /* ---------- Refund Modal ---------- */
   const [refundOpen, setRefundOpen] = useState(false);
@@ -32,11 +40,18 @@ export default function OrderDetailsScreen() {
     if (!orderId) return;
 
     try {
+      setErrorMessage(null);
+      setNotFound(false);
       const data = await getOrder(orderId);
 
       setOrder(data);
-    } catch {
+    } catch (error: any) {
       setOrder(null);
+      if (error instanceof ApiError && error.status === 404) {
+        setNotFound(true);
+      } else {
+        setErrorMessage(error?.message ?? 'Failed to load order.');
+      }
     } finally {
       setLoading(false);
     }
@@ -45,6 +60,8 @@ export default function OrderDetailsScreen() {
   useEffect(() => {
     setOrder(null);
     setLoading(true);
+    setErrorMessage(null);
+    setNotFound(false);
   }, [orderId]);
 
   useFocusEffect(
@@ -134,9 +151,21 @@ export default function OrderDetailsScreen() {
   }
 
   if (!order) {
+    if (notFound) {
+      return (
+        <Screen>
+          <AppText>Order not found</AppText>
+        </Screen>
+      );
+    }
+
     return (
-      <Screen>
-        <AppText>Order not found</AppText>
+      <Screen className="gap-4">
+        <AppText variant="title">Unable to load order</AppText>
+        <AppText>{errorMessage ?? 'Something went wrong while loading this order.'}</AppText>
+        <Pressable onPress={loadOrder} className="rounded-xl bg-black p-4">
+          <AppText className="text-center font-semibold text-white">Retry</AppText>
+        </Pressable>
       </Screen>
     );
   }
@@ -226,7 +255,7 @@ export default function OrderDetailsScreen() {
       </View>
 
       {/* ---------- Actions ---------- */}
-      {isPending && (
+      {canManageOrder && isPending && (
         <Pressable
           disabled={canceling}
           onPress={handleCancelOrder}
@@ -237,23 +266,25 @@ export default function OrderDetailsScreen() {
         </Pressable>
       )}
 
-      <Pressable
-        disabled={refundDisabled}
-        onPress={() => setRefundOpen(true)}
-        className={`rounded-xl p-4 ${refundDisabled ? 'bg-gray-300' : 'bg-blue-600'}`}>
-        <AppText className="text-center font-semibold text-white">
-          {refundDisabled ? 'Fully Refunded' : 'Issue Refund'}
-        </AppText>
-      </Pressable>
+      {canManageOrder && (
+        <Pressable
+          disabled={refundDisabled}
+          onPress={() => setRefundOpen(true)}
+          className={`rounded-xl p-4 ${refundDisabled ? 'bg-gray-300' : 'bg-blue-600'}`}>
+          <AppText className="text-center font-semibold text-white">
+            {refundDisabled ? 'Fully Refunded' : 'Issue Refund'}
+          </AppText>
+        </Pressable>
+      )}
 
-      {isFinalized && (
+      {canManageOrder && isFinalized && (
         <View className="mt-4">
           <AppText className="text-sm italic text-gray-500">
             This order is finalized and can no longer be modified.
           </AppText>
         </View>
       )}
-      {refundOpen && (
+      {canManageOrder && refundOpen && (
         <View className="absolute inset-0 justify-center bg-black/40 px-6">
           <View className="gap-3 rounded-xl bg-white p-5">
             <AppText variant="title">Issue Refund</AppText>

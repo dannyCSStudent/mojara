@@ -23,6 +23,7 @@ export default function OrdersScreen() {
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [sort, setSort] = useState<SortOption>('newest');
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const activeStatus = status ?? 'all';
 
@@ -37,37 +38,51 @@ export default function OrdersScreen() {
 
   const loadInitial = useCallback(async () => {
     setLoading(true);
+    setErrorMessage(null);
 
-    const res = await fetchOrdersCursor({
-      scope: isAdmin ? 'admin' : 'user',
-      status: activeStatus === 'all' ? undefined : activeStatus,
-      sort,
-      search: debouncedQuery || undefined,
-      limit: 20,
-    });
+    try {
+      const res = await fetchOrdersCursor({
+        scope: isAdmin ? 'admin' : 'user',
+        status: activeStatus === 'all' ? undefined : activeStatus,
+        sort,
+        search: debouncedQuery || undefined,
+        limit: 20,
+      });
 
-    setOrders(res.data);
-    setCursor(res.next_cursor);
-    setLoading(false);
+      setOrders(res.data);
+      setCursor(res.next_cursor);
+    } catch (error: any) {
+      setOrders([]);
+      setCursor(null);
+      setErrorMessage(error?.message ?? 'Failed to load orders.');
+    } finally {
+      setLoading(false);
+    }
   }, [isAdmin, activeStatus, sort, debouncedQuery]);
 
   const loadMore = useCallback(async () => {
     if (!cursor || loadingMore) return;
 
     setLoadingMore(true);
+    setErrorMessage(null);
 
-    const res = await fetchOrdersCursor({
-      scope: isAdmin ? 'admin' : 'user',
-      status: activeStatus === 'all' ? undefined : activeStatus,
-      sort,
-      search: debouncedQuery || undefined,
-      cursor,
-      limit: 20,
-    });
+    try {
+      const res = await fetchOrdersCursor({
+        scope: isAdmin ? 'admin' : 'user',
+        status: activeStatus === 'all' ? undefined : activeStatus,
+        sort,
+        search: debouncedQuery || undefined,
+        cursor,
+        limit: 20,
+      });
 
-    setOrders((prev) => [...prev, ...res.data]);
-    setCursor(res.next_cursor);
-    setLoadingMore(false);
+      setOrders((prev) => [...prev, ...res.data]);
+      setCursor(res.next_cursor);
+    } catch (error: any) {
+      setErrorMessage(error?.message ?? 'Failed to load more orders.');
+    } finally {
+      setLoadingMore(false);
+    }
   }, [cursor, loadingMore, isAdmin, activeStatus, sort, debouncedQuery]);
 
   useEffect(() => {
@@ -97,6 +112,18 @@ export default function OrdersScreen() {
     return (
       <View className="flex-1 items-center justify-center bg-white">
         <ActivityIndicator />
+      </View>
+    );
+  }
+
+  if (!loading && errorMessage && orders.length === 0) {
+    return (
+      <View className="flex-1 items-center justify-center gap-4 bg-white p-6">
+        <Text className="text-center text-lg font-semibold">Unable to load orders</Text>
+        <Text className="text-center text-gray-600">{errorMessage}</Text>
+        <Pressable onPress={loadInitial} className="rounded-xl bg-black px-4 py-3">
+          <Text className="text-white">Retry</Text>
+        </Pressable>
       </View>
     );
   }
@@ -159,6 +186,12 @@ export default function OrdersScreen() {
           })}
         </View>
       )}
+
+      {errorMessage ? (
+        <View className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3">
+          <Text className="text-red-700">{errorMessage}</Text>
+        </View>
+      ) : null}
 
       <FlatList
         data={orders}

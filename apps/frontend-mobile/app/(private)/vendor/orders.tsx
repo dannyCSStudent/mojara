@@ -11,9 +11,15 @@ export default function VendorOrdersScreen() {
   const [loading, setLoading] = useState(true);
   const [acting, setActing] = useState<string | null>(null);
   const [focused, setFocused] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   /* ---------- Fetch ---------- */
-  const loadOrders = useCallback(async (signal?: AbortSignal) => {
+  const loadOrders = useCallback(async (signal?: AbortSignal, silent = false) => {
+    if (!silent) {
+      setLoading(true);
+      setErrorMessage(null);
+    }
+
     try {
       const data = await fetchVendorOrders(signal);
 
@@ -21,9 +27,16 @@ export default function VendorOrdersScreen() {
       data.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
 
       setOrders(data);
-      setLoading(false);
-    } catch {
-      // silent retry (important for sleep / resume)
+      setErrorMessage(null);
+    } catch (error: any) {
+      if (!silent) {
+        setOrders([]);
+        setErrorMessage(error?.message ?? 'Failed to load vendor orders.');
+      }
+    } finally {
+      if (!silent) {
+        setLoading(false);
+      }
     }
   }, []);
 
@@ -40,7 +53,13 @@ export default function VendorOrdersScreen() {
   /* ---------- Poll only if needed ---------- */
   const hasPending = useMemo(() => orders.some((o) => o.status === 'pending'), [orders]);
 
-  usePolling(loadOrders, 4000, focused && hasPending);
+  usePolling(
+    () => {
+      void loadOrders(undefined, true);
+    },
+    4000,
+    focused && hasPending
+  );
 
   /* ---------- Actions ---------- */
   async function handleConfirm(orderId: string) {
@@ -97,9 +116,29 @@ export default function VendorOrdersScreen() {
   const pending = orders.filter((o) => o.status === 'pending');
   const completed = orders.filter((o) => o.status !== 'pending');
 
+  if (errorMessage && orders.length === 0) {
+    return (
+      <Screen className="gap-4">
+        <AppText variant="title">Unable to load orders</AppText>
+        <AppText>{errorMessage}</AppText>
+        <Pressable onPress={() => loadOrders()} className="rounded-xl bg-black p-4">
+          <AppText className="text-center text-white">Retry</AppText>
+        </Pressable>
+      </Screen>
+    );
+  }
+
   return (
     <Screen className="gap-4">
       <AppText variant="title">Incoming Orders</AppText>
+
+      {errorMessage ? (
+        <View className="rounded-xl border border-red-200 bg-red-50 p-3 dark:border-red-900 dark:bg-red-950">
+          <AppText variant="caption" className="text-red-700 dark:text-red-300">
+            {errorMessage}
+          </AppText>
+        </View>
+      ) : null}
 
       {pending.length === 0 && completed.length === 0 && <AppText>No orders yet</AppText>}
 
