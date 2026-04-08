@@ -4,6 +4,7 @@ import { Screen } from '../../components/Screen';
 import { AppText } from '../../components/AppText';
 import { supabase } from '../../lib/supabase';
 import { router } from 'expo-router';
+import * as Linking from 'expo-linking';
 
 export default function ForgotPasswordScreen() {
   const [email, setEmail] = useState('');
@@ -19,7 +20,7 @@ export default function ForgotPasswordScreen() {
       setLoading(true);
 
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: 'mojara://reset-password',
+        redirectTo: Linking.createURL('/reset-password'),
       });
 
       if (error) throw error;

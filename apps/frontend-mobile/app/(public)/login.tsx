@@ -83,6 +83,11 @@ export default function LoginScreen() {
             {loading ? 'Signing In...' : 'Sign In'}
           </AppText>
         </Pressable>
+        <Pressable onPress={() => router.push('/forgot-password')} className="mt-4">
+          <AppText variant="caption" className="text-center text-blue-600">
+            Forgot your password?
+          </AppText>
+        </Pressable>
         <Pressable onPress={() => router.replace('/signup')} className="mt-6">
           <AppText variant="caption" className="text-center text-blue-600">
             Don’t have an account? Sign Up
