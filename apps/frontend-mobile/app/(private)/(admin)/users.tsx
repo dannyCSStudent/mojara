@@ -47,10 +47,11 @@ export default function AdminUsersScreen() {
     role?: AdminUser['role'];
     vendorId?: string;
   }>();
+  const initialSearch = params.search?.trim() ?? '';
   const PAGE_SIZE = 50;
   const [users, setUsers] = useState<AdminUser[]>([]);
-  const [search, setSearch] = useState(params.search ?? '');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [search, setSearch] = useState(initialSearch);
+  const [debouncedSearch, setDebouncedSearch] = useState(initialSearch);
   const [roleFilter, setRoleFilter] = useState<AdminUser['role'] | 'all'>(params.role ?? 'all');
   const [sortField, setSortField] = useState<AdminUserSortField>('email');
   const [sortDirection, setSortDirection] = useState<AdminUserSortDirection>('asc');
@@ -65,7 +66,9 @@ export default function AdminUsersScreen() {
   const [linkedVendor, setLinkedVendor] = useState<Vendor | null>(null);
 
   useEffect(() => {
-    setSearch(params.search ?? '');
+    const nextSearch = params.search?.trim() ?? '';
+    setSearch(nextSearch);
+    setDebouncedSearch(nextSearch);
     setRoleFilter(params.role ?? 'all');
     setSuccessMessage(null);
   }, [params.role, params.search]);

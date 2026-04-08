@@ -261,6 +261,11 @@ export const useAppStore = create<AppState>()(
             authToken: null,
             user: null,
             vendorId: null,
+            markets: [],
+            subscriptions: [],
+            activeMarketId: null,
+            activeOrderId: null,
+            unreadCount: 0,
           });
 
           setApiAuthToken(null);
