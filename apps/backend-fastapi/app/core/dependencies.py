@@ -4,15 +4,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import jwt, JWTError
 import httpx
 from app.core.permissions import ROLE_PERMISSIONS
-import os
-from dotenv import load_dotenv
-
-load_dotenv()
-
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_ISSUER = f"{SUPABASE_URL}/auth/v1"
-
-JWKS_URL = f"{SUPABASE_ISSUER}/.well-known/jwks.json"
+from app.config import settings
 
 security = HTTPBearer()
 
@@ -22,7 +14,13 @@ _jwks_cache = None
 def get_jwks():
     global _jwks_cache
     if _jwks_cache is None:
-        resp = httpx.get(JWKS_URL, timeout=5.0)
+        if not settings.jwks_url:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="JWKS configuration is missing",
+            )
+
+        resp = httpx.get(settings.jwks_url, timeout=5.0)
         resp.raise_for_status()
         _jwks_cache = resp.json()
     return _jwks_cache
@@ -53,8 +51,8 @@ def get_current_user(
             token,
             key,
             algorithms=["ES256"],
-            audience="authenticated",
-            issuer=SUPABASE_ISSUER,
+            audience=settings.supabase_jwt_audience,
+            issuer=settings.supabase_issuer,
         )
 
         # --------------------------------------------------

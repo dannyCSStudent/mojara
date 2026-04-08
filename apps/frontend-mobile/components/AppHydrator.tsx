@@ -1,7 +1,7 @@
-import { useEffect } from "react";
+import { useEffect } from 'react';
 // import { View } from "react-native";
-import { useAppStore } from "../store/useAppStore";
-import { LoadingState } from "./LoadingState";
+import { useAppStore } from '../store/useAppStore';
+import { LoadingState } from './LoadingState';
 
 interface AppHydratorProps {
   children: React.ReactNode;

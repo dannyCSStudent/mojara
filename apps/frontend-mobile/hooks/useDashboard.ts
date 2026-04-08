@@ -1,6 +1,6 @@
-import { useEffect, useState, useCallback, useRef } from "react";
-import { fetchAdminOverview } from "../api/dashboard";
-import { AdminOverview } from "@repo/types";
+import { useEffect, useState, useCallback, useRef } from 'react';
+import { fetchAdminOverview } from '../api/dashboard';
+import { AdminOverview } from '@repo/types';
 
 export function useAdminDashboard() {
   const [data, setData] = useState<AdminOverview | null>(null);
@@ -19,7 +19,7 @@ export function useAdminDashboard() {
       setData(res);
       isFirstLoad.current = false;
     } catch (err: any) {
-      setError(err?.message ?? "Something went wrong");
+      setError(err?.message ?? 'Something went wrong');
     } finally {
       setLoading(false);
     }

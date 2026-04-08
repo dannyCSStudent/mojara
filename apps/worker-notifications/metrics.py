@@ -30,3 +30,13 @@ notifications_created = Counter(
     "notifications_created_total",
     "Total number of notifications created"
 )
+
+worker_up = Gauge(
+    "notification_worker_up",
+    "Whether the notification worker process is running"
+)
+
+worker_last_event_timestamp = Gauge(
+    "notification_worker_last_event_timestamp_seconds",
+    "Unix timestamp of the last successfully processed event"
+)

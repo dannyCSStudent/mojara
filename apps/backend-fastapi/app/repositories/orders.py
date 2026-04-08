@@ -1,6 +1,6 @@
 # repositories/orders.py
 
-from app.db import get_user_client
+from app.db import get_service_client, get_user_client
 from fastapi import HTTPException
 from postgrest import APIError
 import httpx
@@ -177,8 +177,92 @@ def get_orders_for_vendor_cursor(
     }
 
 
-def get_order_by_id(jwt: str, order_id: str, user_id: str, vendor_id: str | None):
-    supabase = get_user_client(jwt)
+def get_orders_for_admin_cursor(
+    status: str | None = None,
+    search: str | None = None,
+    sort: str = "newest",
+    cursor: str | None = None,
+    limit: int = 20,
+):
+    supabase = get_service_client()
+
+    query = (
+        supabase
+        .table("orders")
+        .select(
+            """
+            id,
+            market_id,
+            vendor_id,
+            user_id,
+            status,
+            total,
+            created_at,
+            order_items (
+                product_id,
+                quantity,
+                unit_price,
+                products ( name )
+            )
+            """
+        )
+        .limit(limit + 1)
+    )
+
+    if search:
+        query = query.ilike("id", f"%{search}%")
+
+    if status:
+        query = query.eq("status", status)
+
+    if sort == "newest":
+        query = query.order("created_at", desc=True).order("id", desc=True)
+    elif sort == "oldest":
+        query = query.order("created_at", desc=False).order("id", desc=False)
+    elif sort == "highest":
+        query = query.order("total", desc=True).order("id", desc=True)
+
+    if cursor:
+        created_at, order_id = decode_cursor(cursor)
+
+        if sort in ["newest", "highest"]:
+            query = (
+                query
+                .lt("created_at", created_at)
+                .or_(f"created_at.eq.{created_at},id.lt.{order_id}")
+            )
+        else:
+            query = (
+                query
+                .gt("created_at", created_at)
+                .or_(f"created_at.eq.{created_at},id.gt.{order_id}")
+            )
+
+    res = query.execute()
+    rows = res.data or []
+
+    has_more = len(rows) == limit + 1
+    rows = rows[:limit]
+
+    next_cursor = None
+    if has_more:
+        last = rows[-1]
+        next_cursor = encode_cursor(last["created_at"], last["id"])
+
+    return {
+        "data": _normalize_orders(rows),
+        "next_cursor": next_cursor,
+    }
+
+
+def get_order_by_id(
+    jwt: str,
+    order_id: str,
+    user_id: str,
+    vendor_id: str | None,
+    is_admin: bool = False,
+):
+    supabase = get_service_client() if is_admin else get_user_client(jwt)
 
     res = (
         supabase
@@ -225,7 +309,7 @@ def get_order_by_id(jwt: str, order_id: str, user_id: str, vendor_id: str | None
     order = res.data
 
     # permission check
-    assert_user_can_view_order(order, user_id, vendor_id)
+    assert_user_can_view_order(order, user_id, vendor_id, is_admin=is_admin)
 
     return _normalize_order(order)
 
@@ -357,6 +441,7 @@ def refund_order(jwt: str, order_id: str, amount: float, reason: str, vendor_id:
             "p_order_id": order_id,
             "p_amount": amount,
             "p_reason": reason,
+            "p_vendor_id": vendor_id,
         },
     ).execute()
 
@@ -369,7 +454,15 @@ def refund_order(jwt: str, order_id: str, amount: float, reason: str, vendor_id:
 
 # repositories/orders.py
 
-def assert_user_can_view_order(order: dict, user_id: str, vendor_id: str | None):
+def assert_user_can_view_order(
+    order: dict,
+    user_id: str,
+    vendor_id: str | None,
+    is_admin: bool = False,
+):
+    if is_admin:
+        return
+
     if order["user_id"] == user_id:
         return  # customer owns it
 

@@ -1,6 +1,6 @@
 # routes/markets.py
 # has been audited for permissions and dependencies, and implements the following endpoints:
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from uuid import UUID
 from typing import List
 
@@ -16,8 +16,10 @@ from app.repositories.products import (
     bulk_update_products_for_vendor,
     update_product_inventory
 )
+from app.repositories.inventory_events import list_inventory_events
 from app.schemas.markets import MarketOut
 from app.schemas.vendors import VendorOut, VendorCreate
+from app.schemas.inventory_events import InventoryEventOut
 from app.schemas.products import (
     ProductOut,
     ProductCreate,
@@ -34,10 +36,11 @@ router = APIRouter(tags=["markets"])
 # -----------------------
 @router.get("/markets", response_model=list[MarketOut])
 def get_markets(
+    search: str | None = Query(None, min_length=1),
     jwt: str = Depends(get_current_jwt),
     _=Depends(require_permissions("markets.read")),
 ):
-    return list_markets(jwt)
+    return list_markets(jwt, search=search)
 
 
 @router.get("/markets/{market_id}", response_model=MarketOut)
@@ -58,10 +61,11 @@ def get_market(
 @router.get("/markets/{market_id}/vendors", response_model=list[VendorOut])
 def get_vendors_for_market(
     market_id: UUID,
+    search: str | None = Query(None, min_length=1),
     jwt: str = Depends(get_current_jwt),
     _=Depends(require_permissions("vendors.read")),
 ):
-    return list_vendors_for_market(jwt, market_id)
+    return list_vendors_for_market(jwt, market_id, search=search)
 
 
 @router.post("/markets/{market_id}/vendors", response_model=VendorOut, status_code=201)
@@ -71,7 +75,13 @@ def create_vendor_for_market(
     jwt: str = Depends(get_current_jwt),
     _=Depends(require_permissions("vendors.create")),
 ):
-    vendor = create_vendor(jwt, market_id=market_id, name=payload.name)
+    vendor = create_vendor(
+        jwt,
+        {
+            "market_id": str(market_id),
+            "name": payload.name,
+        },
+    )
     if not vendor:
         raise HTTPException(status_code=403, detail="Not allowed to create vendor in this market")
     return vendor
@@ -87,10 +97,22 @@ def create_vendor_for_market(
 def get_vendor_products(
     market_id: UUID,
     vendor_id: UUID,
+    search: str | None = Query(None, min_length=1),
+    min_price: float | None = Query(None, ge=0),
+    max_price: float | None = Query(None, ge=0),
+    sort: str = Query("name", enum=["name", "price_asc", "price_desc"]),
     jwt: str = Depends(get_current_jwt),
     _=Depends(require_permissions("products.read")),
 ):
-    return get_products_for_vendor(jwt, market_id=str(market_id), vendor_id=str(vendor_id))
+    return get_products_for_vendor(
+        jwt,
+        market_id=str(market_id),
+        vendor_id=str(vendor_id),
+        search=search,
+        min_price=min_price,
+        max_price=max_price,
+        sort=sort,
+    )
 
 
 @router.post(
@@ -223,3 +245,24 @@ def update_inventory(
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
     return product
+
+
+@router.get(
+    "/markets/{market_id}/vendors/{vendor_id}/products/{product_id}/inventory-events",
+    response_model=list[InventoryEventOut],
+)
+def get_inventory_events(
+    market_id: UUID,
+    vendor_id: UUID,
+    product_id: UUID,
+    limit: int = Query(10, ge=1, le=50),
+    jwt: str = Depends(get_current_jwt),
+    _=Depends(require_permissions("products.read")),
+):
+    return list_inventory_events(
+        jwt=jwt,
+        market_id=str(market_id),
+        vendor_id=str(vendor_id),
+        product_id=str(product_id),
+        limit=limit,
+    )

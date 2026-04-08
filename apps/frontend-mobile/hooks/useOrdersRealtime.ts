@@ -1,75 +1,41 @@
-import { useEffect, useState } from "react";
-import { supabase } from "../lib/supabase";
-import { fetchMyOrders } from "../api/orders";
-import { Order } from "../api/types";
-import { useAppStore } from "../store/useAppStore";
+import { useCallback, useEffect, useState } from 'react';
+import { fetchMyOrders } from '../api/orders';
+import { Order } from '../api/types';
+import { useAppStore } from '../store/useAppStore';
+import { usePolling } from './usePolling';
 
 export function useOrdersRealtime(enabled: boolean) {
-  const user = useAppStore((s) => s.user);
   const isAuthenticated = useAppStore((s) => s.isAuthenticated);
 
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  useEffect(() => {
-  if (!isAuthenticated || !user) return;
-
-  let channel: ReturnType<typeof supabase.channel> | null = null;
-
-  const loadInitial = async () => {
+  const loadOrders = useCallback(async () => {
+    if (!enabled || !isAuthenticated) return;
     try {
-      setLoading(true);
+      setError(null);
       const data = await fetchMyOrders();
       setOrders(data);
     } catch (err) {
-      console.error("Failed to load orders", err);
+      console.error('Failed to load orders', err);
       setError(err as Error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [enabled, isAuthenticated]);
 
-  loadInitial();
-
-  channel = supabase
-    .channel(`orders:user:${user.id}`)
-    .on(
-      "postgres_changes",
-      {
-        event: "*",
-        schema: "public",
-        table: "orders",
-        filter: `user_id=eq.${user.id}`,
-      },
-      (payload) => {
-        console.log("ORDER REALTIME:", payload);
-
-        setOrders((prev) => {
-          switch (payload.eventType) {
-            case "INSERT":
-              return [payload.new as Order, ...prev];
-            case "UPDATE":
-              return prev.map((o) =>
-                o.id === payload.new.id ? (payload.new as Order) : o
-              );
-            case "DELETE":
-              return prev.filter((o) => o.id !== payload.old.id);
-            default:
-              return prev;
-          }
-        });
-      }
-    )
-    .subscribe();
-
-  return () => {
-    if (channel) {
-      supabase.removeChannel(channel);
+  useEffect(() => {
+    if (!enabled || !isAuthenticated) {
+      setOrders([]);
+      setLoading(false);
+      return;
     }
-  };
-}, [isAuthenticated, user]);
 
+    setLoading(true);
+  }, [enabled, isAuthenticated]);
+
+  usePolling(loadOrders, 5000, enabled && isAuthenticated);
 
   return {
     orders,

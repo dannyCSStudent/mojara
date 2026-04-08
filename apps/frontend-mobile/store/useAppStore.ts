@@ -1,22 +1,24 @@
-import { create } from "zustand";
-import { persist } from "zustand/middleware";
-import { fetchMarkets, Market } from "../api/markets";
-import { supabase } from "../lib/supabase";
-import { setApiAuthToken } from "../api/client";
-import { storage } from "./storage";
-
-
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+import { fetchMarkets, Market } from '../api/markets';
+import {
+  createMarketSubscription,
+  deleteMarketSubscription,
+  fetchMarketSubscriptions,
+} from '../api/marketSubscriptions';
+import { supabase } from '../lib/supabase';
+import { setApiAuthToken } from '../api/client';
+import { storage } from './storage';
 
 /* =========================
    Types
 ========================= */
-export type AppRole = "admin" | "moderator" | "user" | "vendor";
+export type AppRole = 'admin' | 'moderator' | 'user' | 'vendor';
 export type AppUser = {
   id: string;
   email: string;
   app_role: AppRole;
 };
-
 
 interface AppState {
   /* ---------- Lifecycle ---------- */
@@ -24,8 +26,8 @@ interface AppState {
   setHydrated: (value: boolean) => void;
 
   /* ---------- UI ---------- */
-  theme: "light" | "dark" | "system";
-  setTheme: (theme: AppState["theme"]) => void;
+  theme: 'light' | 'dark' | 'system';
+  setTheme: (theme: AppState['theme']) => void;
 
   /* ---------- Auth ---------- */
   isAuthenticated: boolean;
@@ -61,11 +63,6 @@ interface AppState {
   /* ---------- Notifications ---------- */
   unreadCount: number;
   setUnreadCount: (count: number) => void;
-  initNotificationRealtime: () => void;
-
-  notificationChannel: any | null;
-  notificationDedupeMap: Map<string, number>;
-  notificationWindowMs: number;
 }
 
 /* =========================
@@ -80,7 +77,7 @@ export const useAppStore = create<AppState>()(
       setHydrated: (value) => set({ isHydrated: value }),
 
       /* ---------- UI ---------- */
-      theme: "system",
+      theme: 'system',
       setTheme: (theme) => set({ theme }),
 
       /* ---------- Auth ---------- */
@@ -111,23 +108,13 @@ export const useAppStore = create<AppState>()(
         const { user } = get();
         if (!user) return;
 
-        const { data, error } = await supabase
-          .from("market_subscriptions")
-          .select("market_id")
-          .eq("user_id", user.id);
-
-        if (error) throw error;
-
-        const loadedSubs =
-          data?.map((row) => row.market_id) ?? [];
+        const data = await fetchMarketSubscriptions();
+        const loadedSubs = data?.map((row) => row.market_id) ?? [];
 
         set((state) => {
           let updatedActive = state.activeMarketId;
 
-          if (
-            updatedActive &&
-            !loadedSubs.includes(updatedActive)
-          ) {
+          if (updatedActive && !loadedSubs.includes(updatedActive)) {
             updatedActive = loadedSubs[0] ?? null;
           }
 
@@ -147,34 +134,27 @@ export const useAppStore = create<AppState>()(
         if (!user) return;
 
         const state = get();
-        const isSubscribed =
-          state.subscriptions.includes(marketId);
+        const isSubscribed = state.subscriptions.includes(marketId);
+        const previousSubscriptions = state.subscriptions;
+        const previousActiveMarketId = state.activeMarketId;
 
         // Optimistic update
         set((prev) => {
           let updatedSubs: string[];
 
           if (isSubscribed) {
-            updatedSubs = prev.subscriptions.filter(
-              (id) => id !== marketId
-            );
+            updatedSubs = prev.subscriptions.filter((id) => id !== marketId);
           } else {
             updatedSubs = [...prev.subscriptions, marketId];
           }
 
           let updatedActive = prev.activeMarketId;
 
-          if (
-            isSubscribed &&
-            prev.activeMarketId === marketId
-          ) {
+          if (isSubscribed && prev.activeMarketId === marketId) {
             updatedActive = null;
           }
 
-          if (
-            !updatedActive &&
-            updatedSubs.length > 0
-          ) {
+          if (!updatedActive && updatedSubs.length > 0) {
             updatedActive = updatedSubs[0];
           }
 
@@ -184,20 +164,18 @@ export const useAppStore = create<AppState>()(
           };
         });
 
-        // Sync with DB
-        if (isSubscribed) {
-          await supabase
-            .from("market_subscriptions")
-            .delete()
-            .eq("user_id", user.id)
-            .eq("market_id", marketId);
-        } else {
-          await supabase
-            .from("market_subscriptions")
-            .insert({
-              user_id: user.id,
-              market_id: marketId,
-            });
+        try {
+          if (isSubscribed) {
+            await deleteMarketSubscription(marketId);
+          } else {
+            await createMarketSubscription(marketId);
+          }
+        } catch (error) {
+          set({
+            subscriptions: previousSubscriptions,
+            activeMarketId: previousActiveMarketId,
+          });
+          throw error;
         }
       },
 
@@ -216,63 +194,7 @@ export const useAppStore = create<AppState>()(
 
       /* ---------- Notifications ---------- */
       unreadCount: 0,
-      setUnreadCount: (count) =>
-        set({ unreadCount: count }),
-
-      notificationChannel: null,
-      notificationDedupeMap: new Map(),
-      notificationWindowMs: 5000,
-
-      initNotificationRealtime: () => {
-        const state = get();
-        if (!state.user || state.notificationChannel)
-          return;
-
-        const channel = supabase
-          .channel(`notifications-${state.user.id}`)
-          .on(
-            "postgres_changes",
-            {
-              event: "INSERT",
-              schema: "public",
-              table: "notifications",
-              filter: `user_id=eq.${state.user.id}`,
-            },
-            (payload) => {
-              const now = Date.now();
-              const id = payload.new.id;
-
-              set((current) => {
-                const dedupeMap = new Map(
-                  current.notificationDedupeMap
-                );
-
-                const lastSeen =
-                  dedupeMap.get(id);
-
-                if (
-                  lastSeen &&
-                  now - lastSeen <
-                    current.notificationWindowMs
-                ) {
-                  return {};
-                }
-
-                dedupeMap.set(id, now);
-
-                return {
-                  unreadCount:
-                    current.unreadCount + 1,
-                  notificationDedupeMap:
-                    dedupeMap,
-                };
-              });
-            }
-          )
-          .subscribe();
-
-        set({ notificationChannel: channel });
-      },
+      setUnreadCount: (count) => set({ unreadCount: count }),
 
       /* ---------- Profile Loader ---------- */
       loadUserProfile: async (userId, token) => {
@@ -280,59 +202,51 @@ export const useAppStore = create<AppState>()(
           data: { user },
         } = await supabase.auth.getUser();
 
-        if (!user) throw new Error("User not found");
+        if (!user) throw new Error('User not found');
 
-        const role =
-          (user.app_metadata?.role ?? "user") as AppRole;
+        const role = (user.app_metadata?.role ?? 'user') as AppRole;
+        const vendorId =
+          typeof user.app_metadata?.vendor_id === 'string' ? user.app_metadata.vendor_id : null;
 
         set({
           isAuthenticated: true,
           authToken: token,
+          vendorId,
           user: {
-          id: user.id,
-          email: user.email ?? "",
-          app_role: role,
+            id: user.id,
+            email: user.email ?? '',
+            app_role: role,
           },
         });
 
         setApiAuthToken(token);
 
-        get().initNotificationRealtime();
         await get().loadSubscriptions();
       },
 
-
       /* ---------- Auth Actions ---------- */
       signIn: async (email, password) => {
-        const { data, error } =
-          await supabase.auth.signInWithPassword({
-            email,
-            password,
-          });
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
 
         if (error) throw error;
         if (!data.session) return;
 
-        await get().loadUserProfile(
-          data.session.user.id,
-          data.session.access_token
-        );
+        await get().loadUserProfile(data.session.user.id, data.session.access_token);
       },
 
       signUp: async (email, password) => {
-        const { data, error } =
-          await supabase.auth.signUp({
-            email,
-            password,
-          });
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+        });
 
         if (error) throw error;
         if (!data.session) return;
 
-        await get().loadUserProfile(
-          data.session.user.id,
-          data.session.access_token
-        );
+        await get().loadUserProfile(data.session.user.id, data.session.access_token);
       },
 
       restoreSession: async () => {
@@ -344,6 +258,7 @@ export const useAppStore = create<AppState>()(
               isAuthenticated: false,
               authToken: null,
               user: null,
+              vendorId: null,
               subscriptions: [],
               activeMarketId: null,
               unreadCount: 0,
@@ -353,17 +268,15 @@ export const useAppStore = create<AppState>()(
             return;
           }
 
-          await get().loadUserProfile(
-            data.session.user.id,
-            data.session.access_token
-          );
+          await get().loadUserProfile(data.session.user.id, data.session.access_token);
         } catch (error) {
-          console.error("Session restore failed:", error);
+          console.error('Session restore failed:', error);
 
           set({
             isAuthenticated: false,
             authToken: null,
             user: null,
+            vendorId: null,
           });
 
           setApiAuthToken(null);
@@ -373,16 +286,7 @@ export const useAppStore = create<AppState>()(
         }
       },
 
-
       signOut: async () => {
-        const { notificationChannel } = get();
-
-        if (notificationChannel) {
-          await supabase.removeChannel(
-            notificationChannel
-          );
-        }
-
         await supabase.auth.signOut();
 
         set({
@@ -395,17 +299,15 @@ export const useAppStore = create<AppState>()(
           activeMarketId: null,
           activeOrderId: null,
           unreadCount: 0,
-          notificationChannel: null,
-          notificationDedupeMap: new Map(),
         });
 
         setApiAuthToken(null);
       },
     }),
     {
-      name: "app-storage",
+      name: 'app-storage',
       storage,
-      
+
       partialize: (state) => ({
         theme: state.theme,
         subscriptions: state.subscriptions,

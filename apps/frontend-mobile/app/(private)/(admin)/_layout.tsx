@@ -1,6 +1,6 @@
-import { Redirect, Slot } from "expo-router";
-import { useAppStore } from "../../../store/useAppStore";
-import { hasPermission, ROUTE_PERMISSIONS } from "@repo/permissions";
+import { Redirect, Slot } from 'expo-router';
+import { useAppStore } from '../../../store/useAppStore';
+import { hasPermission, ROUTE_PERMISSIONS } from '@repo/permissions';
 
 export default function AdminLayout() {
   const user = useAppStore((s) => s.user);
@@ -18,7 +18,6 @@ export default function AdminLayout() {
 
   return <Slot />;
 }
-
 
 //   if (!hasPermission(user.app_role, "dashboard.admin")) {
 //   return <Text>You do not have access to this area.</Text>;

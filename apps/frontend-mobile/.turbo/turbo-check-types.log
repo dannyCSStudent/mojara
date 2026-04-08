@@ -1,0 +1,4 @@
+
+> frontend-mobile@1.0.0 check-types /home/dee/Documents/repos/mojara/apps/frontend-mobile
+> tsc -p tsconfig.json --noEmit
+

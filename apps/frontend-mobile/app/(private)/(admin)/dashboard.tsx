@@ -1,10 +1,10 @@
-import { useState } from "react";
-import { View, ScrollView, RefreshControl } from "react-native";
-import { Screen, LoadingState, EmptyState } from "../../../components";
-import { useAdminDashboard } from "../../../hooks/useDashboard";
-import { AdminStatsCard } from "../../../components/dashboard/AdminStatsCard";
-import { AdminQuickActions } from "../../../components/dashboard/AdminQuickActions";
-import { AdminPendingOrders } from "../../../components/dashboard/AdminPendingOrders";
+import { useState } from 'react';
+import { View, ScrollView, RefreshControl } from 'react-native';
+import { Screen, LoadingState, EmptyState } from '../../../components';
+import { useAdminDashboard } from '../../../hooks/useDashboard';
+import { AdminStatsCard } from '../../../components/dashboard/AdminStatsCard';
+import { AdminQuickActions } from '../../../components/dashboard/AdminQuickActions';
+import { AdminPendingOrders } from '../../../components/dashboard/AdminPendingOrders';
 
 export default function AdminDashboardScreen() {
   const { data, loading, error, reload } = useAdminDashboard();
@@ -25,13 +25,9 @@ export default function AdminDashboardScreen() {
     <Screen>
       <ScrollView
         showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-        contentContainerStyle={{ paddingBottom: 40 }}
-      >
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        contentContainerStyle={{ paddingBottom: 40 }}>
         <View className="space-y-6">
-
           {/* Stats */}
           <View className="flex-row flex-wrap gap-4">
             <AdminStatsCard
@@ -39,11 +35,7 @@ export default function AdminDashboardScreen() {
               value={data.total_orders_7d}
               className="w-[48%]"
             />
-            <AdminStatsCard
-              label="Orders Today"
-              value={data.orders_today}
-              className="w-[48%]"
-            />
+            <AdminStatsCard label="Orders Today" value={data.orders_today} className="w-[48%]" />
             <AdminStatsCard
               label="Active Vendors"
               value={data.active_vendors}
@@ -61,7 +53,6 @@ export default function AdminDashboardScreen() {
 
           {/* Quick Actions */}
           <AdminQuickActions />
-
         </View>
       </ScrollView>
     </Screen>

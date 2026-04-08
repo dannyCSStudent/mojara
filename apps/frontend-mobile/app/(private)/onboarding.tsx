@@ -1,22 +1,16 @@
-import { useEffect, useState } from "react";
-import {
-  View,
-  Pressable,
-  Alert,
-  ScrollView,
-} from "react-native";
-import { useRouter } from "expo-router";
-import { useAppStore } from "../../store/useAppStore";
-import { AppText } from "../../components/AppText";
-import { Screen } from "../../components/Screen";
-import { supabase } from "../../lib/supabase";
+import { useEffect, useState } from 'react';
+import { View, Pressable, Alert, ScrollView } from 'react-native';
+import { useRouter } from 'expo-router';
+import { useAppStore } from '../../store/useAppStore';
+import { AppText } from '../../components/AppText';
+import { Screen } from '../../components/Screen';
+import { createMarketSubscription } from '../../api/marketSubscriptions';
 
 export default function OnboardingScreen() {
   const router = useRouter();
 
   const markets = useAppStore((s) => s.markets);
   const loadMarkets = useAppStore((s) => s.loadMarkets);
-  
 
   const [selectedMarkets, setSelectedMarkets] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
@@ -27,45 +21,37 @@ export default function OnboardingScreen() {
 
   function toggleMarket(id: string) {
     setSelectedMarkets((prev) =>
-      prev.includes(id)
-        ? prev.filter((m) => m !== id)
-        : [...prev, id]
+      prev.includes(id) ? prev.filter((m) => m !== id) : [...prev, id]
     );
   }
 
   async function handleComplete() {
-  if (selectedMarkets.length === 0) {
-    Alert.alert("Please select at least one market.");
-    return;
-  }
-
-  try {
-    setLoading(true);
-
-    const user = useAppStore.getState().user;
-    if (!user) {
-      Alert.alert("User session not found.");
+    if (selectedMarkets.length === 0) {
+      Alert.alert('Please select at least one market.');
       return;
     }
 
-    await supabase.from("market_subscriptions").insert(
-      selectedMarkets.map((marketId) => ({
-        user_id: user.id,
-        market_id: marketId,
-      }))
-    );
+    try {
+      setLoading(true);
 
-    await useAppStore.getState().loadSubscriptions();
+      const user = useAppStore.getState().user;
+      if (!user) {
+        Alert.alert('User session not found.');
+        return;
+      }
 
-    router.replace("/(private)");
-  } catch (err) {
-    console.error("Failed to complete onboarding", err);
-    Alert.alert("Something went wrong. Please try again.");
-  } finally {
-    setLoading(false);
+      await Promise.all(selectedMarkets.map((marketId) => createMarketSubscription(marketId)));
+
+      await useAppStore.getState().loadSubscriptions();
+
+      router.replace('/(private)');
+    } catch (err) {
+      console.error('Failed to complete onboarding', err);
+      Alert.alert('Something went wrong. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   }
-}
-
 
   return (
     <Screen>
@@ -88,31 +74,19 @@ export default function OnboardingScreen() {
               <Pressable
                 key={market.id}
                 onPress={() => toggleMarket(market.id)}
-                className={`mb-4 rounded-2xl p-5 border ${
+                className={`mb-4 rounded-2xl border p-5 ${
                   isSelected
-                    ? "bg-blue-600 border-blue-600"
-                    : "bg-gray-100 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700"
-                }`}
-              >
-                <AppText
-                  variant="subheading"
-                  className={
-                    isSelected
-                      ? "text-white"
-                      : ""
-                  }
-                >
+                    ? 'border-blue-600 bg-blue-600'
+                    : 'border-gray-200 bg-gray-100 dark:border-neutral-700 dark:bg-neutral-800'
+                }`}>
+                <AppText variant="subheading" className={isSelected ? 'text-white' : ''}>
                   {market.name}
                 </AppText>
 
-                {typeof market.description === "string" && market.description.length > 0 && (
-
+                {typeof market.description === 'string' && market.description.length > 0 && (
                   <AppText
                     variant="caption"
-                    className={`mt-1 ${
-                      isSelected ? "text-blue-100" : ""
-                    }`}
-                  >
+                    className={`mt-1 ${isSelected ? 'text-blue-100' : ''}`}>
                     {market.description}
                   </AppText>
                 )}
@@ -125,14 +99,11 @@ export default function OnboardingScreen() {
         <Pressable
           onPress={handleComplete}
           disabled={loading}
-          className={`mt-6 rounded-2xl py-4 items-center ${
-            selectedMarkets.length === 0 || loading
-              ? "bg-gray-400"
-              : "bg-blue-600"
-          }`}
-        >
+          className={`mt-6 items-center rounded-2xl py-4 ${
+            selectedMarkets.length === 0 || loading ? 'bg-gray-400' : 'bg-blue-600'
+          }`}>
           <AppText variant="subheading" className="text-white">
-            {loading ? "Saving..." : "Complete Setup"}
+            {loading ? 'Saving...' : 'Complete Setup'}
           </AppText>
         </Pressable>
       </View>

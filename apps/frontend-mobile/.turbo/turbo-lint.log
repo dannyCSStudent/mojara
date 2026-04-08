@@ -1,0 +1,6 @@
+
+> frontend-mobile@1.0.0 lint /home/dee/Documents/repos/mojara/apps/frontend-mobile
+> eslint "**/*.{js,jsx,ts,tsx}" && prettier -c "**/*.{js,jsx,ts,tsx,json}"
+
+Checking formatting...
+All matched files use Prettier code style!

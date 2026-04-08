@@ -1,0 +1,74 @@
+
+> frontend-mobile@1.0.0 test /home/dee/Documents/repos/mojara/apps/frontend-mobile
+> pnpm exec tsc -p tsconfig.test.json && node --test tests/*.test.mjs
+
+TAP version 13
+# Subtest: buildAdminUsersRoute preserves exact vendor filter params
+ok 1 - buildAdminUsersRoute preserves exact vendor filter params
+  ---
+  duration_ms: 2.527933
+  type: 'test'
+  ...
+# Subtest: buildAdminVendorLinkedUsersRoute uses vendorId instead of search text
+ok 2 - buildAdminVendorLinkedUsersRoute uses vendorId instead of search text
+  ---
+  duration_ms: 0.648594
+  type: 'test'
+  ...
+# Subtest: buildAdminVendorProductsRoute preserves vendor and market context
+ok 3 - buildAdminVendorProductsRoute preserves vendor and market context
+  ---
+  duration_ms: 1.110044
+  type: 'test'
+  ...
+# Subtest: buildAdminUserDetailRoute preserves user id param
+ok 4 - buildAdminUserDetailRoute preserves user id param
+  ---
+  duration_ms: 0.412979
+  type: 'test'
+  ...
+# Subtest: buildLinkedVendorBannerTitle prefers vendor name when present
+ok 5 - buildLinkedVendorBannerTitle prefers vendor name when present
+  ---
+  duration_ms: 1.406642
+  type: 'test'
+  ...
+# Subtest: buildLinkedVendorBannerTitle falls back to vendor id
+ok 6 - buildLinkedVendorBannerTitle falls back to vendor id
+  ---
+  duration_ms: 0.261121
+  type: 'test'
+  ...
+# Subtest: buildLinkedVendorSummary handles singular without more pages
+ok 7 - buildLinkedVendorSummary handles singular without more pages
+  ---
+  duration_ms: 0.262409
+  type: 'test'
+  ...
+# Subtest: buildLinkedVendorSummary handles plural with more pages
+ok 8 - buildLinkedVendorSummary handles plural with more pages
+  ---
+  duration_ms: 0.242402
+  type: 'test'
+  ...
+# Subtest: buildAdminUsersEmptyState explains vendor-linked empty state with vendor name
+ok 9 - buildAdminUsersEmptyState explains vendor-linked empty state with vendor name
+  ---
+  duration_ms: 1.359732
+  type: 'test'
+  ...
+# Subtest: buildAdminUsersEmptyState falls back to generic search copy for unfiltered view
+ok 10 - buildAdminUsersEmptyState falls back to generic search copy for unfiltered view
+  ---
+  duration_ms: 0.291899
+  type: 'test'
+  ...
+1..10
+# tests 10
+# suites 0
+# pass 10
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 198.348041

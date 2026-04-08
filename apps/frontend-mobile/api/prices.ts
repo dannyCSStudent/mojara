@@ -1,5 +1,4 @@
-
-import { apiRequest } from "./client";
+import { apiRequest } from './client';
 
 /* =========================
    Types
@@ -15,26 +14,22 @@ import { apiRequest } from "./client";
 //   valid_until: string; // ISO datetime
 // };
 
-
-
 export type ActivePrice = {
-  market_id: string
-  size_band_id: string
-  reference_price: number
-  confidence_score: number
-  sample_count: number
-  valid_from: string
-  valid_until: string
-}
+  market_id: string;
+  size_band_id: string;
+  reference_price: number;
+  confidence_score: number;
+  sample_count: number;
+  valid_from: string;
+  valid_until: string;
+};
 
 /* =========================
    Queries
 ========================= */
 
 export function fetchActivePrices() {
-  return apiRequest<ActivePrice[]>(
-    "/prices/active"
-  );
+  return apiRequest<ActivePrice[]>('/prices/active');
 }
 
 /* =========================
@@ -42,8 +37,7 @@ export function fetchActivePrices() {
 ========================= */
 
 export function lockPriceAgreement(priceId: string) {
-  return apiRequest<{ id: string; status: string }>(
-    `/admin/prices/${priceId}/lock`,
-    { method: "POST" }
-  );
+  return apiRequest<{ id: string; status: string }>(`/admin/prices/${priceId}/lock`, {
+    method: 'POST',
+  });
 }

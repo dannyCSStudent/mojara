@@ -1,9 +1,9 @@
-import { useEffect } from "react";
-import { Slot, router } from "expo-router";
-import { useAppStore } from "../store/useAppStore";
-import { supabase } from "../lib/supabase";
-import { setApiAuthToken } from "../api/client";
-import "../global.css";
+import { useEffect } from 'react';
+import { Slot, router } from 'expo-router';
+import { useAppStore } from '../store/useAppStore';
+import { supabase } from '../lib/supabase';
+import { setApiAuthToken } from '../api/client';
+import '../global.css';
 
 export default function RootLayout() {
   const restoreSession = useAppStore((s) => s.restoreSession);
@@ -35,15 +35,14 @@ export default function RootLayout() {
      - Handle password recovery
   ========================= */
   useEffect(() => {
-    const { data: listener } =
-      supabase.auth.onAuthStateChange((event, session) => {
-        const token = session?.access_token ?? null;
-        setApiAuthToken(token);
+    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
+      const token = session?.access_token ?? null;
+      setApiAuthToken(token);
 
-        if (event === "PASSWORD_RECOVERY") {
-          router.replace("/reset-password");
-        }
-      });
+      if (event === 'PASSWORD_RECOVERY') {
+        router.replace('/reset-password');
+      }
+    });
 
     return () => {
       listener.subscription.unsubscribe();
@@ -53,7 +52,6 @@ export default function RootLayout() {
   if (!isHydrated) {
     return null;
   }
-  
 
   return <Slot />;
 }

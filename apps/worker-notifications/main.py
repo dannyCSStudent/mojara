@@ -2,6 +2,7 @@ import asyncio
 import signal
 import time
 
+from config import settings
 from db import get_db
 from subscriptions import fetch_matching_subscriptions
 from notifications import create_notifications_bulk, build_notification_message
@@ -14,6 +15,8 @@ from metrics import (
     event_processing_duration,
     event_lag_seconds,
     queue_depth,
+    worker_last_event_timestamp,
+    worker_up,
 )
 from prometheus_client import start_http_server
 
@@ -37,13 +40,20 @@ async def listen():
     listener_conn = await get_db()
     worker_conn = await get_db()
 
-    start_http_server(9100)
+    start_http_server(settings.metrics_port)
+    worker_up.set(1)
 
     loop = asyncio.get_running_loop()
     loop.add_signal_handler(signal.SIGTERM, stop_event.set)
     loop.add_signal_handler(signal.SIGINT, stop_event.set)
 
-    log("INFO", "Worker started", channel=CHANNEL)
+    log(
+        "INFO",
+        "Worker started",
+        channel=CHANNEL,
+        metrics_port=settings.metrics_port,
+        log_level=settings.log_level,
+    )
 
     await process_backlog(worker_conn)
 
@@ -55,6 +65,7 @@ async def listen():
     )
 
     await stop_event.wait()
+    worker_up.set(0)
     log("INFO", "Worker shutting down")
 
 
@@ -176,6 +187,7 @@ async def process_event(db, event):
         event_processing_duration.observe(duration)
         events_processed.inc()
         notifications_created.inc(len(rows))
+        worker_last_event_timestamp.set(time.time())
 
         log(
             "INFO",
@@ -259,6 +271,7 @@ async def handle_failure(db, event, error_message):
             "Event retry scheduled",
             event_id=event["id"],
             retry=retry_count + 1,
+            error=error_message,
         )
 
 

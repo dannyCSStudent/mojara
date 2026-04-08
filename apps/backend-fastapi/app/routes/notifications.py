@@ -15,6 +15,7 @@ from app.repositories.notifications import (
     delete_subscription,
     get_user_notifications,
     mark_notification_read,
+    mark_all_notifications_read,
     get_unread_count
 )
 from app.core.dependencies import get_current_user, require_permissions
@@ -44,7 +45,7 @@ def subscribe(
     return create_subscription(
         jwt=current_user["_jwt"],
         user_id=current_user["sub"],
-        payload=payload.dict(),
+        payload=payload.model_dump(),
     )
 
 # -----------------------------------------
@@ -88,6 +89,17 @@ def mark_read(
         user_id=current_user["sub"],
     )
     return {"ok": True}
+
+
+@router.patch("/read-all")
+def mark_all_read(
+    current_user = Depends(require_permissions("notifications.update"))
+):
+    updated = mark_all_notifications_read(
+        jwt=current_user["_jwt"],
+        user_id=current_user["sub"],
+    )
+    return {"ok": True, "updated": updated}
 
 # -----------------------------------------
 # Debug current user (admin/debug only)

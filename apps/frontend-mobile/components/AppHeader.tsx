@@ -1,5 +1,5 @@
-import { View } from "react-native";
-import { AppText } from "./AppText";
+import { View } from 'react-native';
+import { AppText } from './AppText';
 
 interface AppHeaderProps {
   title: string;
@@ -8,10 +8,8 @@ interface AppHeaderProps {
 
 export function AppHeader({ title, rightSlot }: AppHeaderProps) {
   return (
-    <View className="flex-row items-center justify-between mb-4">
-      <AppText variant="headline">
-        {title}
-      </AppText>
+    <View className="mb-4 flex-row items-center justify-between">
+      <AppText variant="headline">{title}</AppText>
 
       {rightSlot}
     </View>

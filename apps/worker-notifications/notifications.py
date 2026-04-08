@@ -1,4 +1,5 @@
 # worker-notifications/notifications.py
+from logger import log
 
 async def build_notification_message(db, event):
     """
@@ -51,7 +52,7 @@ async def create_notification(
         """, user_id, event_id, event_type, title, body)
 
     except Exception as e:
-        print("Notification insert failed:", e)
+        log("ERROR", "Notification insert failed", error=str(e))
 
 async def create_notifications_bulk(db, rows):
     if not rows:

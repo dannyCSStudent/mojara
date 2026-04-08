@@ -1,23 +1,26 @@
-import { Platform } from "react-native";
-import Constants from "expo-constants";
+import { Platform } from 'react-native';
 
-const extra = Constants.expoConfig?.extra ?? {};
-
-function getApiUrl() {
-  if (Platform.OS === "web") {
-    return "http://localhost:8000";
-  }
-
-  if (Platform.OS === "android") {
-    return "http://10.0.2.2:8000";
-  }
-
-  return "http://localhost:8000"; // iOS
+function getDefaultApiUrl() {
+  return Platform.OS === 'android' ? 'http://10.0.2.2:8000' : 'http://localhost:8000';
 }
-console.log("supabase url", extra.SUPABASE_URL);
+
+function required(key: string, value?: string) {
+  if (!value) {
+    throw new Error(`Missing environment variable: ${key}`);
+  }
+  return value;
+}
+
 export const ENV = {
-  API_URL: getApiUrl(),
-  SUPABASE_URL: extra.SUPABASE_URL,
-  SUPABASE_ANON_KEY: extra.SUPABASE_ANON_KEY,
-  
+  API_URL: (globalThis as any).process?.env?.EXPO_PUBLIC_API_URL || getDefaultApiUrl(),
+
+  SUPABASE_URL: required(
+    'SUPABASE_URL',
+    (globalThis as any).process?.env?.EXPO_PUBLIC_SUPABASE_URL
+  ),
+
+  SUPABASE_ANON_KEY: required(
+    'SUPABASE_ANON_KEY',
+    (globalThis as any).process?.env?.EXPO_PUBLIC_SUPABASE_ANON_KEY
+  ),
 };

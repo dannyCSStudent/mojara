@@ -1,88 +1,38 @@
 # app/core/permissions.py
-from typing import Dict, List
+import json
+from pathlib import Path
+from typing import Dict, List, TypedDict
 
-# ----------------------------------------
-# Permission Registry
-# ----------------------------------------
+
+class PermissionRegistry(TypedDict):
+    roles: Dict[str, List[str]]
+    permissions: List[str]
+    routePermissions: Dict[str, str]
+
+
+def _load_permission_registry() -> PermissionRegistry:
+    registry_path = (
+        Path(__file__).resolve().parents[4]
+        / "packages"
+        / "types"
+        / "permissions-registry.json"
+    )
+
+    try:
+        with open(registry_path, "r", encoding="utf-8") as fh:
+            return json.load(fh)
+    except FileNotFoundError as exc:
+        raise RuntimeError(
+            f"Permissions registry not found at {registry_path}. "
+            "Make sure permissions-registry.json exists in packages/types."
+        ) from exc
+    except json.JSONDecodeError as exc:
+        raise RuntimeError("Permissions registry JSON is malformed.") from exc
+
+
+_registry = _load_permission_registry()
 
 ROLE_PERMISSIONS: Dict[str, List[str]] = {
-
-    # ---------------------------------------------------
-    # ADMIN
-    # ---------------------------------------------------
-    "admin": [
-        "*",
-    ],
-
-    # ---------------------------------------------------
-    # MODERATOR
-    # ---------------------------------------------------
-    "moderator": [
-        # Markets
-        "markets.read",
-
-        # Vendors
-        "vendors.read",
-
-        # Products
-        "products.read",
-        "products.update",
-        "products.bulk_update",
-        "products.inventory_update",
-
-        # Orders
-        "orders.read",
-        "orders.vendor_read",
-        "orders.confirm",
-        "orders.cancel",
-
-        # Prices
-        "prices.read",
-        "prices.lock",
-
-        # Notifications
-        "notifications.read",
-    ],
-
-    # ---------------------------------------------------
-    # VENDOR
-    # ---------------------------------------------------
-    "vendor": [
-        # Vendors (self-management)
-        "vendors.read",
-        "vendors.update",
-
-        # Products (their products only)
-        "products.read",
-        "products.update",
-        "products.inventory_update",
-
-        # Orders (their orders only)
-        "orders.vendor_read",
-        "orders.confirm",
-        "orders.cancel",
-
-        # Prices
-        "prices.read",
-
-        # Notifications
-        "notifications.read",
-    ],
-
-    # ---------------------------------------------------
-    # USER
-    # ---------------------------------------------------
-    "user": [
-        "markets.read",
-        "vendors.read",
-        "products.read",
-        "orders.create",
-        "orders.read",
-        "prices.signal",
-        "prices.read",
-        "notifications.read",
-        "notifications.create",
-        "notifications.update",
-    ],
+    role: permissions for role, permissions in _registry["roles"].items()
 }
 

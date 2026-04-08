@@ -23,3 +23,15 @@ class ActivePriceAgreementOut(BaseModel):
 class PriceLockOut(BaseModel):
     id: UUID
     status: str
+
+
+class PriceExplainOut(BaseModel):
+    market_id: UUID
+    size_band: str
+    reference_price: float
+    confidence_score: float
+    sample_count: int
+    status: str
+    valid_from: datetime
+    valid_until: datetime
+    created_at: datetime

@@ -1,9 +1,9 @@
 # routes/orders.py
 from uuid import UUID
-from fastapi import APIRouter, Depends, Query, HTTPException
-from typing import List
+from fastapi import APIRouter, Depends, HTTPException, Query
+from typing import List, Literal
 
-from app.core.dependencies import get_current_jwt, require_permissions, get_current_user
+from app.core.dependencies import get_current_jwt, get_current_user, require_permissions
 from app.schemas.orders import (
     CreateOrderPayload,
     OrderOut,
@@ -16,6 +16,7 @@ from app.repositories.orders import (
     confirm_order,
     cancel_order,
     get_order_by_id,
+    get_orders_for_admin_cursor,
     get_orders_for_user_cursor,
     get_orders_for_vendor_cursor,
     refund_order,
@@ -51,7 +52,7 @@ def create_order_endpoint(
 # ==========================================================
 @router.get("/orders", response_model=CursorPaginatedOrders)
 def list_orders_endpoint(
-    scope: str = Query("user", enum=["user", "vendor"]),
+    scope: str = Query("user", enum=["user", "vendor", "admin"]),
     status: str | None = Query(None),
     sort: str = Query("newest", enum=["newest", "oldest", "highest"]),
     search: str | None = Query(None),
@@ -63,7 +64,18 @@ def list_orders_endpoint(
     user_id = current_user["sub"]
 
     try:
-        if scope == "vendor":
+        if scope == "admin":
+            if current_user.get("app_role") != "admin":
+                raise HTTPException(status_code=403, detail="Admin access required")
+
+            result = get_orders_for_admin_cursor(
+                status=status,
+                sort=sort,
+                search=search,
+                cursor=cursor,
+                limit=limit,
+            )
+        elif scope == "vendor":
             vendor_id = current_user["vendor_id"]
 
             if not vendor_id:
@@ -97,8 +109,7 @@ def list_orders_endpoint(
     except HTTPException:
         raise
 
-    except Exception as e:
-        print("❌ list_orders_endpoint error:", repr(e))
+    except Exception:
         raise HTTPException(status_code=500, detail="Failed to load orders")
 
 # ==========================================================
@@ -121,11 +132,12 @@ def get_order(
     current_user = Depends(require_permissions("orders.read")),
 ):
     return get_order_by_id(
-    jwt=jwt,
-    order_id=str(order_id),
-    user_id=current_user["sub"],
-    vendor_id=current_user.get("vendor_id"),
-)
+        jwt=jwt,
+        order_id=str(order_id),
+        user_id=current_user["sub"],
+        vendor_id=current_user.get("vendor_id"),
+        is_admin=current_user.get("app_role") == "admin",
+    )
 
 # ==========================================================
 # ✅ CONFIRM ORDER (VENDOR)
@@ -136,7 +148,6 @@ def confirm_order_endpoint(
     jwt: str = Depends(get_current_jwt),
     current_user = Depends(require_permissions("orders.confirm")),
 ):
-    user_id = current_user["sub"]
     vendor_id = current_user.get("vendor_id")
 
     if not vendor_id:
@@ -164,8 +175,10 @@ def cancel_order_endpoint(
     jwt: str = Depends(get_current_jwt),
     current_user = Depends(require_permissions("orders.cancel")),
 ):
-    user_id = current_user["sub"]
-    vendor_id = current_user["vendor_id"]
+    vendor_id = current_user.get("vendor_id")
+
+    if not vendor_id:
+        raise HTTPException(403, "Vendor account required")
 
     try:
         return cancel_order(jwt=jwt, order_id=order_id, vendor_id=vendor_id)
@@ -189,28 +202,43 @@ def refund_order_route(
     jwt: str = Depends(get_current_jwt),
     current_user = Depends(require_permissions("orders.refund")),
 ):
-    vendor_id = current_user["vendor_id"]
+    vendor_id = current_user.get("vendor_id")
 
-    return refund_order(
-        jwt=jwt,
-        order_id=str(order_id),
-        amount=payload.amount,
-        reason=payload.reason,
-        vendor_id=vendor_id,
-    )
+    if not vendor_id:
+        raise HTTPException(403, "Vendor account required")
+
+    try:
+        return refund_order(
+            jwt=jwt,
+            order_id=str(order_id),
+            amount=payload.amount,
+            reason=payload.reason,
+            vendor_id=vendor_id,
+        )
+
+    except HTTPException:
+        raise
+
+    except Exception as e:
+        msg = str(e)
+        if "Invalid order status transition" in msg:
+            raise HTTPException(status_code=409, detail="Order cannot be refunded in its current state")
+        if "Refund exceeds order total" in msg:
+            raise HTTPException(status_code=409, detail="Refund exceeds remaining refundable amount")
+        raise HTTPException(status_code=500, detail="Failed to refund order")
 
 
 @router.get("/orders/summary")
 def orders_summary(
-    scope: str = Query("user"),
+    scope: Literal["user", "vendor"] = Query("user", enum=["user", "vendor"]),
     current_user: dict = Depends(require_permissions("orders.read")),
 ):
     try:
-        jwt = current_user["jwt"]
         user_id = current_user["sub"]
+        jwt = current_user["_jwt"]
 
         if scope == "vendor":
-            vendor_id = current_user["vendor_id"]
+            vendor_id = current_user.get("vendor_id")
 
             if not vendor_id:
                 return {
@@ -231,6 +259,5 @@ def orders_summary(
             user_id=user_id,
         )
 
-    except Exception as e:
-        print("❌ orders_summary error:", e)
+    except Exception:
         raise HTTPException(status_code=500, detail="Failed to load summary")

@@ -10,9 +10,7 @@
     "experiments": {
       "tsconfigPaths": true
     },
-    "plugins": [
-      "expo-router"
-    ],
+    "plugins": ["expo-router"],
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -21,33 +19,26 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
+    "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.anonymous.frontendmobile"
     },
     "android": {
-  "adaptiveIcon": {
-    "foregroundImage": "./assets/adaptive-icon.png",
-    "backgroundColor": "#ffffff"
-  },
-  "package": "com.anonymous.frontendmobile",
-  "intentFilters": [
-    {
-      "action": "VIEW",
-      "autoVerify": false,
-      "data": [
-        { "scheme": "mojara" }
-      ],
-      "category": ["BROWSABLE", "DEFAULT"]
-    }
-  ]
-},
-    "extra": {
-      "SUPABASE_URL": "https://mgltyvetcrvkedqpjsje.supabase.co",
-      "SUPABASE_ANON_KEY": "sb_publishable_ya9RxzHUOzfEY6JXINn5WQ_J2mth-X_"
-    }
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.anonymous.frontendmobile",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": false,
+          "data": [{ "scheme": "mojara" }],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ]
+    },
+    "extra": {}
   }
 }

@@ -1,1 +1,1 @@
-export { supabaseStorage } from "./supabaseStorage.native";
+export { supabaseStorage } from './supabaseStorage.native';

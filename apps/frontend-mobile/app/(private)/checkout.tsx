@@ -1,16 +1,10 @@
-import {
-  View,
-  Text,
-  Pressable,
-  ActivityIndicator,
-  Alert,
-} from "react-native";
-import { useState } from "react";
-import { useRouter } from "expo-router";
-import { createOrder, confirmOrder } from "../../api/orders";
-import { useAppStore } from "../../store/useAppStore";
-import { Order } from "../../api/types";
-import { useCartStore } from "../../store/useCartStore";
+import { View, Text, Pressable, ActivityIndicator, Alert } from 'react-native';
+import { useState } from 'react';
+import { useRouter } from 'expo-router';
+import { createOrder, confirmOrder } from '../../api/orders';
+import { useAppStore } from '../../store/useAppStore';
+import { Order } from '../../api/types';
+import { useCartStore } from '../../store/useCartStore';
 
 export default function CheckoutScreen() {
   const router = useRouter();
@@ -21,7 +15,6 @@ export default function CheckoutScreen() {
   const items = useCartStore((s) => s.items);
   const clearCart = useCartStore((s) => s.clearCart);
   const lockCart = useCartStore((s) => s.lockCart);
-
 
   /* ---------- App state ---------- */
   const user = useAppStore((s) => s.user);
@@ -44,34 +37,30 @@ export default function CheckoutScreen() {
 
   async function handleCheckout() {
     if (!user) {
-      Alert.alert("Error", "You must be logged in");
+      Alert.alert('Error', 'You must be logged in');
       return;
     }
 
     try {
       setLoading(true);
 
-      const createdOrder = await createOrder(
-        safeMarketId,
-        safeVendorId,
-        {
-          user_id: user.id,
-          items,
-        }
-      );
+      const createdOrder = await createOrder(safeMarketId, safeVendorId, {
+        user_id: user.id,
+        items,
+      });
 
       setOrder(createdOrder);
       setActiveOrderId(createdOrder.id);
       lockCart(); // 🔒
     } catch (err: any) {
-      Alert.alert("Checkout failed", err.message ?? "Unknown error");
+      Alert.alert('Checkout failed', err.message ?? 'Unknown error');
     } finally {
       setLoading(false);
     }
   }
 
   async function handleConfirm() {
-    if (!order || order.status !== "pending") return;
+    if (!order || order.status !== 'pending') return;
 
     try {
       setLoading(true);
@@ -80,10 +69,10 @@ export default function CheckoutScreen() {
 
       setActiveOrderId(null);
       clearCart(); // 🔥 single source cleanup
-      Alert.alert("Success", "Order confirmed!");
-      router.replace("/(private)/orders");
+      Alert.alert('Success', 'Order confirmed!');
+      router.replace('/(private)/orders');
     } catch (err: any) {
-      Alert.alert("Confirmation failed", err.message ?? "Unknown error");
+      Alert.alert('Confirmation failed', err.message ?? 'Unknown error');
     } finally {
       setLoading(false);
     }
@@ -91,14 +80,11 @@ export default function CheckoutScreen() {
 
   return (
     <View className="flex-1 bg-white p-4">
-      <Text className="text-2xl font-bold mb-4">Checkout</Text>
+      <Text className="mb-4 text-2xl font-bold">Checkout</Text>
 
       <View className="mb-6">
         {items.map((item) => (
-          <View
-            key={item.product_id}
-            className="flex-row justify-between mb-2"
-          >
+          <View key={item.product_id} className="mb-2 flex-row justify-between">
             <Text>{item.name}</Text>
             <Text>x{item.quantity}</Text>
           </View>
@@ -106,31 +92,22 @@ export default function CheckoutScreen() {
       </View>
 
       {!order ? (
-        <Pressable
-          onPress={handleCheckout}
-          disabled={loading}
-          className="bg-black rounded-xl p-4"
-        >
+        <Pressable onPress={handleCheckout} disabled={loading} className="rounded-xl bg-black p-4">
           {loading ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text className="text-white text-center font-semibold">
-              Place Order
-            </Text>
+            <Text className="text-center font-semibold text-white">Place Order</Text>
           )}
         </Pressable>
       ) : (
         <Pressable
           onPress={handleConfirm}
-          disabled={loading || order.status !== "pending"}
-          className="bg-green-600 rounded-xl p-4"
-        >
+          disabled={loading || order.status !== 'pending'}
+          className="rounded-xl bg-green-600 p-4">
           {loading ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text className="text-white text-center font-semibold">
-              Confirm Order
-            </Text>
+            <Text className="text-center font-semibold text-white">Confirm Order</Text>
           )}
         </Pressable>
       )}

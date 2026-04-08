@@ -1,59 +1,40 @@
-import { useEffect, useState, useCallback } from "react"
-import { supabase } from "../lib/supabase"
-import { fetchActivePrices, ActivePrice } from "../api/prices"
-import { useAppStore } from "../store/useAppStore"
+import { useEffect, useState, useCallback } from 'react';
+import { fetchActivePrices, ActivePrice } from '../api/prices';
+import { useAppStore } from '../store/useAppStore';
+import { usePolling } from './usePolling';
 
 export function usePriceBoard(marketId: string) {
-  const authToken = useAppStore((s) => s.authToken)
-  const isAuthenticated = useAppStore((s) => s.isAuthenticated)
+  const authToken = useAppStore((s) => s.authToken);
+  const isAuthenticated = useAppStore((s) => s.isAuthenticated);
 
-  const [prices, setPrices] = useState<ActivePrice[]>([])
-  const [loading, setLoading] = useState(true)
+  const [prices, setPrices] = useState<ActivePrice[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const loadPrices = useCallback(async () => {
-    if (!authToken) return
+    if (!authToken) return;
 
-    setLoading(true)
+    setLoading(true);
     try {
-      const data = await fetchActivePrices()
-      setPrices(data.filter((p) => p.market_id === marketId))
+      const data = await fetchActivePrices();
+      setPrices(data.filter((p) => p.market_id === marketId));
     } catch (err) {
-      console.error("Failed to load prices", err)
+      console.error('Failed to load prices', err);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }, [authToken, marketId])
+  }, [authToken, marketId]);
 
-  /* ---------- Initial load ---------- */
   useEffect(() => {
-    if (isAuthenticated) {
-      loadPrices()
+    if (!isAuthenticated) {
+      setPrices([]);
+      setLoading(false);
+      return;
     }
-  }, [isAuthenticated, loadPrices])
 
-  /* ---------- Realtime updates ---------- */
-  useEffect(() => {
-    if (!isAuthenticated) return
+    setLoading(true);
+  }, [isAuthenticated, marketId]);
 
-    const channel = supabase
-      .channel("price-signals")
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "price_signals",
-        },
-        () => {
-          loadPrices()
-        }
-      )
-      .subscribe()
+  usePolling(loadPrices, 5000, isAuthenticated);
 
-    return () => {
-      supabase.removeChannel(channel)
-    }
-  }, [isAuthenticated, loadPrices])
-
-  return { prices, loading }
+  return { prices, loading };
 }

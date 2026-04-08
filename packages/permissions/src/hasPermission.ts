@@ -1,5 +1,5 @@
 import { ROLE_PERMISSIONS } from "./roles";
-import { AppRole, Permission } from "../../types";
+import { AppRole, Permission } from "@repo/types";
 
 export function hasPermission(
   role: AppRole,

@@ -1,17 +1,17 @@
-import { useState } from "react";
-import { View, TextInput, Pressable, Alert } from "react-native";
-import { Screen } from "../../components/Screen";
-import { AppText } from "../../components/AppText";
-import { supabase } from "../../lib/supabase";
-import { router } from "expo-router";
+import { useState } from 'react';
+import { View, TextInput, Pressable, Alert } from 'react-native';
+import { Screen } from '../../components/Screen';
+import { AppText } from '../../components/AppText';
+import { supabase } from '../../lib/supabase';
+import { router } from 'expo-router';
 
 export default function ForgotPasswordScreen() {
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
 
   async function handleReset() {
     if (!email) {
-      Alert.alert("Please enter your email.");
+      Alert.alert('Please enter your email.');
       return;
     }
 
@@ -19,20 +19,17 @@ export default function ForgotPasswordScreen() {
       setLoading(true);
 
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: "mojara://reset-password",
+        redirectTo: 'mojara://reset-password',
       });
 
       if (error) throw error;
 
-      Alert.alert(
-        "Check your email",
-        "We sent you a password reset link."
-      );
+      Alert.alert('Check your email', 'We sent you a password reset link.');
 
       router.back();
     } catch (err) {
       console.error(err);
-      Alert.alert("Something went wrong. Please try again.");
+      Alert.alert('Something went wrong. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -55,7 +52,7 @@ export default function ForgotPasswordScreen() {
           </AppText>
 
           <TextInput
-            className="rounded-2xl border border-gray-300 dark:border-neutral-700 px-4 py-4 text-base bg-gray-100 dark:bg-neutral-800 text-black dark:text-white"
+            className="rounded-2xl border border-gray-300 bg-gray-100 px-4 py-4 text-base text-black dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
             placeholder="you@example.com"
             placeholderTextColor="#9CA3AF"
             value={email}
@@ -68,12 +65,9 @@ export default function ForgotPasswordScreen() {
         <Pressable
           onPress={handleReset}
           disabled={loading}
-          className={`rounded-2xl py-4 items-center ${
-            loading ? "bg-gray-400" : "bg-blue-600"
-          }`}
-        >
+          className={`items-center rounded-2xl py-4 ${loading ? 'bg-gray-400' : 'bg-blue-600'}`}>
           <AppText variant="subheading" className="text-white">
-            {loading ? "Sending..." : "Send Reset Link"}
+            {loading ? 'Sending...' : 'Send Reset Link'}
           </AppText>
         </Pressable>
       </View>

@@ -39,6 +39,9 @@ This allows Mojara to evolve from a simple marketplace into a **smart market net
 - **Supabase (Postgres + Auth + Storage)**
 - **API-first design**
 
+Detailed architecture:
+- [`docs/architecture.md`](docs/architecture.md)
+
 ---
 
 ## 🎨 Phase 2 — UI Infrastructure (✅ Completed)
@@ -141,6 +144,44 @@ npm install
 npx expo start
 ```
 
+## Environment
+
+Frontend Expo config now reads runtime values from `EXPO_PUBLIC_*` env vars via [apps/frontend-mobile/app.config.js](/home/dee/Documents/repos/mojara/apps/frontend-mobile/app.config.js).
+
+Example frontend env:
+
+```bash
+EXPO_PUBLIC_API_URL=http://localhost:8000
+EXPO_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+EXPO_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+```
+
+Backend settings are centralized in [apps/backend-fastapi/app/config.py](/home/dee/Documents/repos/mojara/apps/backend-fastapi/app/config.py).
+
+Example backend env:
+
+```bash
+APP_ENV=development
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+CORS_ALLOW_ORIGINS=http://localhost:19006,http://localhost:3000
+```
+
+## Validation
+
+Local validation and CI use the same commands:
+
+```bash
+pnpm lint
+pnpm check-types
+pnpm test
+pnpm --filter backend-fastapi permissions:check
+pnpm --filter backend-fastapi schema:check
+```
+
+GitHub Actions runs these commands on pushes to `main` and on pull requests via [.github/workflows/ci.yml](/home/dee/Documents/repos/mojara/.github/workflows/ci.yml).
+
 ## 🧠 Long-Term Potential
 
 - Mojara Market is designed to support:
@@ -173,5 +214,3 @@ npx expo start
 
 - This is not a prototype.
 - This is infrastructure.
-
-

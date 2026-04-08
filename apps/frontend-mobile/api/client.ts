@@ -1,8 +1,8 @@
-import { ENV } from "../config/env";
-import { useAppStore } from "../store/useAppStore";
-import { supabase } from "../lib/supabase";
+import { ENV } from '../config/env';
+import { useAppStore } from '../store/useAppStore';
+import { supabase } from '../lib/supabase';
 
-type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
+type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
 
 interface RequestOptions {
   method?: HttpMethod;
@@ -25,14 +25,11 @@ export function setApiAuthToken(token: string | null) {
    API Request
 ========================= */
 
-export async function apiRequest<T>(
-  endpoint: string,
-  options: RequestOptions = {}
-): Promise<T> {
-  const { method = "GET", body, signal } = options;
+export async function apiRequest<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
+  const { method = 'GET', body, signal } = options;
 
   const headers: Record<string, string> = {
-    "Content-Type": "application/json",
+    'Content-Type': 'application/json',
   };
 
   if (authToken) {
@@ -42,9 +39,7 @@ export async function apiRequest<T>(
   const res = await fetch(`${ENV.API_URL}${endpoint}`, {
     method,
     headers,
-    ...(method !== "GET" && body
-      ? { body: JSON.stringify(body) }
-      : {}),
+    ...(method !== 'GET' && body ? { body: JSON.stringify(body) } : {}),
     signal,
   });
 
@@ -53,17 +48,17 @@ export async function apiRequest<T>(
   ========================= */
 
   if (res.status === 401) {
-    console.warn("Unauthorized response — signing out");
+    console.warn('Unauthorized response — signing out');
 
     try {
       const store = useAppStore.getState();
       await store.signOut();
       await supabase.auth.signOut();
     } catch (err) {
-      console.error("Error during forced sign-out", err);
+      console.error('Error during forced sign-out', err);
     }
 
-    throw new Error("Session expired. Please log in again.");
+    throw new Error('Session expired. Please log in again.');
   }
 
   /* =========================
@@ -71,7 +66,7 @@ export async function apiRequest<T>(
   ========================= */
 
   if (!res.ok) {
-    let errorMessage = "API request failed";
+    let errorMessage = 'API request failed';
 
     try {
       const data = await res.json();

@@ -1,12 +1,6 @@
-import os
-from dotenv import load_dotenv
 from supabase import create_client, ClientOptions
 
-load_dotenv()  # <-- MUST BE HERE
-
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_ANON_KEY = os.getenv("SUPABASE_ANON_KEY")
-SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+from app.config import settings
 
 
 
@@ -18,9 +12,12 @@ def get_user_client(jwt: str):
     Uses anon key + injects user JWT.
     This respects RLS policies.
     """
+    if not settings.supabase_url or not settings.supabase_anon_key:
+        raise RuntimeError("SUPABASE_URL and SUPABASE_ANON_KEY must be configured")
+
     return create_client(
-        SUPABASE_URL,
-        SUPABASE_ANON_KEY,
+        settings.supabase_url,
+        settings.supabase_anon_key,
         ClientOptions(
             headers={
                 "Authorization": f"Bearer {jwt}",
@@ -37,7 +34,10 @@ def get_service_client():
     Full admin client.
     Bypasses RLS.
     """
+    if not settings.supabase_url or not settings.supabase_service_role_key:
+        raise RuntimeError("SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be configured")
+
     return create_client(
-        SUPABASE_URL,
-        SUPABASE_SERVICE_KEY,
+        settings.supabase_url,
+        settings.supabase_service_role_key,
     )

@@ -1,6 +1,5 @@
 from pydantic import BaseModel
 from datetime import date
-from typing import List
 
 class AdminOverview(BaseModel):
     total_orders_7d: int

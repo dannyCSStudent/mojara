@@ -2,20 +2,29 @@ from uuid import UUID
 from app.db import get_user_client
 
 
-def list_markets(jwt: str):
+def list_markets(
+    jwt: str,
+    *,
+    search: str | None = None,
+):
     """
     Returns all markets visible to the current user.
     Visibility is enforced entirely by Supabase RLS.
     """
     supabase = get_user_client(jwt)
 
-    res = (
+    query = (
         supabase
         .table("markets")
         .select("*")
-        .order("created_at", desc=False)
-        .execute()
     )
+
+    if search:
+        query = query.or_(
+            f"name.ilike.%{search}%,location.ilike.%{search}%"
+        )
+
+    res = query.order("created_at", desc=False).execute()
 
     return res.data
 
@@ -41,5 +50,4 @@ def get_market_by_id(jwt: str, market_id: UUID):
         return None
 
     return res.data[0]
-
 

@@ -1,10 +1,6 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef } from 'react';
 
-export function usePolling(
-  fn: () => void,
-  interval = 5000,
-  enabled = true
-) {
+export function usePolling(fn: () => void, interval = 5000, enabled = true) {
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {

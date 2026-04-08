@@ -1,5 +1,5 @@
-import { View } from "react-native";
-import { AppText } from "./AppText";
+import { View } from 'react-native';
+import { AppText } from './AppText';
 
 interface EmptyStateProps {
   title: string;

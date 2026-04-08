@@ -1,7 +1,4 @@
-import { Permission } from "../../types";
+import { Permission, permissionRegistry } from "@repo/types";
 
-export const ROUTE_PERMISSIONS: Record<string, Permission> = {
-  adminDashboard: "dashboard.admin",
-  vendorDashboard: "dashboard.vendor",
-  profilePage: "profile.read",
-};
+export const ROUTE_PERMISSIONS: Record<string, Permission> =
+  permissionRegistry.routePermissions;

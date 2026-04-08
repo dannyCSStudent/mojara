@@ -1,29 +1,16 @@
-export type AppRole =
-  | "admin"
-  | "moderator"
-  | "vendor"
-  | "user"
+import permissionRegistryJson from "../permissions-registry.json";
 
-export type Permission =
-  | "*"
-  | "markets.read"
-  | "vendors.read"
-  | "products.read"
-  | "products.update"
-  | "products.bulk_update"
-  | "products.inventory_update"
-  | "orders.create"
-  | "orders.read"
-  | "orders.vendor_read"
-  | "orders.confirm"
-  | "orders.cancel"
-  | "prices.read"
-  | "prices.lock"
-  | "prices.signal"
-  | "notifications.read"
-  | "notifications.create"
-  | "notifications.update"
-  | "dashboard.admin"       
-  | "dashboard.vendor"      
-  | "profile.read"; 
+const rawPermissionRegistry = permissionRegistryJson as {
+  readonly roles: Record<string, readonly string[]>;
+  readonly permissions: readonly string[];
+  readonly routePermissions: Record<string, string>;
+};
 
+export type AppRole = keyof typeof rawPermissionRegistry.roles;
+export type Permission = (typeof rawPermissionRegistry.permissions)[number];
+
+export const permissionRegistry = {
+  roles: rawPermissionRegistry.roles as Record<AppRole, readonly Permission[]>,
+  permissions: rawPermissionRegistry.permissions as readonly Permission[],
+  routePermissions: rawPermissionRegistry.routePermissions as Record<string, Permission>,
+} as const;

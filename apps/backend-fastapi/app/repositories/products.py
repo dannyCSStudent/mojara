@@ -56,10 +56,15 @@ def get_products_for_vendor(
     jwt: str,
     market_id: str,
     vendor_id: str,
+    *,
+    search: str | None = None,
+    min_price: float | None = None,
+    max_price: float | None = None,
+    sort: str = "name",
 ):
     supabase = get_user_client(jwt)
 
-    res = (
+    query = (
         supabase
         .table("products")
         .select(
@@ -76,8 +81,25 @@ def get_products_for_vendor(
         )
         .eq("vendor_id", vendor_id)
         .eq("vendors.market_id", market_id)
-        .execute()
     )
+
+    if search:
+        query = query.ilike("name", f"%{search}%")
+
+    if min_price is not None:
+        query = query.gte("price", min_price)
+
+    if max_price is not None:
+        query = query.lte("price", max_price)
+
+    if sort == "price_asc":
+        query = query.order("price", desc=False).order("name", desc=False)
+    elif sort == "price_desc":
+        query = query.order("price", desc=True).order("name", desc=False)
+    else:
+        query = query.order("name", desc=False)
+
+    res = query.execute()
 
     return res.data
 
@@ -253,5 +275,4 @@ def decrement_inventory(
         )
 
     return res.data[0]
-
 

@@ -1,19 +1,10 @@
-import { useCallback, useState, useMemo } from "react";
-import { useFocusEffect } from "expo-router";
-import {
-  View,
-  ActivityIndicator,
-  Pressable,
-  Alert,
-} from "react-native";
-import { Screen, AppText } from "../../../components";
-import {
-  fetchVendorOrders,
-  confirmOrder,
-  cancelOrder,
-} from "../../../api/orders";
-import { Order } from "../../../api/types";
-import { usePolling } from "../../../hooks/usePolling";
+import { useCallback, useState, useMemo } from 'react';
+import { useFocusEffect } from 'expo-router';
+import { View, ActivityIndicator, Pressable, Alert } from 'react-native';
+import { Screen, AppText } from '../../../components';
+import { fetchVendorOrders, confirmOrder, cancelOrder } from '../../../api/orders';
+import { Order } from '../../../api/types';
+import { usePolling } from '../../../hooks/usePolling';
 
 export default function VendorOrdersScreen() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -27,11 +18,7 @@ export default function VendorOrdersScreen() {
       const data = await fetchVendorOrders(signal);
 
       // Oldest → newest
-      data.sort(
-        (a, b) =>
-          new Date(a.created_at).getTime() -
-          new Date(b.created_at).getTime()
-      );
+      data.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
 
       setOrders(data);
       setLoading(false);
@@ -51,10 +38,7 @@ export default function VendorOrdersScreen() {
   );
 
   /* ---------- Poll only if needed ---------- */
-  const hasPending = useMemo(
-    () => orders.some((o) => o.status === "pending"),
-    [orders]
-  );
+  const hasPending = useMemo(() => orders.some((o) => o.status === 'pending'), [orders]);
 
   usePolling(loadOrders, 4000, focused && hasPending);
 
@@ -64,15 +48,11 @@ export default function VendorOrdersScreen() {
       setActing(orderId);
 
       // Optimistic UI
-      setOrders((prev) =>
-        prev.map((o) =>
-          o.id === orderId ? { ...o, status: "confirmed" } : o
-        )
-      );
+      setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, status: 'confirmed' } : o)));
 
       await confirmOrder(orderId);
     } catch {
-      Alert.alert("Error", "Failed to confirm order");
+      Alert.alert('Error', 'Failed to confirm order');
       loadOrders();
     } finally {
       setActing(null);
@@ -80,24 +60,22 @@ export default function VendorOrdersScreen() {
   }
 
   function handleCancel(orderId: string) {
-    Alert.alert("Cancel Order", "Are you sure?", [
-      { text: "No", style: "cancel" },
+    Alert.alert('Cancel Order', 'Are you sure?', [
+      { text: 'No', style: 'cancel' },
       {
-        text: "Yes",
-        style: "destructive",
+        text: 'Yes',
+        style: 'destructive',
         onPress: async () => {
           try {
             setActing(orderId);
 
             setOrders((prev) =>
-              prev.map((o) =>
-                o.id === orderId ? { ...o, status: "canceled" } : o
-              )
+              prev.map((o) => (o.id === orderId ? { ...o, status: 'canceled' } : o))
             );
 
             await cancelOrder(orderId);
           } catch {
-            Alert.alert("Error", "Failed to cancel order");
+            Alert.alert('Error', 'Failed to cancel order');
             loadOrders();
           } finally {
             setActing(null);
@@ -116,16 +94,14 @@ export default function VendorOrdersScreen() {
     );
   }
 
-  const pending = orders.filter((o) => o.status === "pending");
-  const completed = orders.filter((o) => o.status !== "pending");
+  const pending = orders.filter((o) => o.status === 'pending');
+  const completed = orders.filter((o) => o.status !== 'pending');
 
   return (
     <Screen className="gap-4">
       <AppText variant="title">Incoming Orders</AppText>
 
-      {pending.length === 0 && completed.length === 0 && (
-        <AppText>No orders yet</AppText>
-      )}
+      {pending.length === 0 && completed.length === 0 && <AppText>No orders yet</AppText>}
 
       {/* 🔴 Pending */}
       {pending.map((order) => (
@@ -141,16 +117,10 @@ export default function VendorOrdersScreen() {
       {/* 🟢 Completed */}
       {completed.length > 0 && (
         <>
-          <AppText className="mt-6 text-sm opacity-70">
-            Completed
-          </AppText>
+          <AppText className="mt-6 text-sm opacity-70">Completed</AppText>
 
           {completed.map((order) => (
-            <OrderCard
-              key={order.id}
-              order={order}
-              acting={null}
-            />
+            <OrderCard key={order.id} order={order} acting={null} />
           ))}
         </>
       )}
@@ -171,42 +141,31 @@ function OrderCard({
   onCancel?: (id: string) => void;
 }) {
   return (
-    <View className="border rounded-xl p-4 gap-2">
-      <AppText className="font-semibold">
-        Order #{order.id.slice(0, 8)}
-      </AppText>
+    <View className="gap-2 rounded-xl border p-4">
+      <AppText className="font-semibold">Order #{order.id.slice(0, 8)}</AppText>
 
-      <AppText>
-        Status: {order.status.toUpperCase()}
-      </AppText>
+      <AppText>Status: {order.status.toUpperCase()}</AppText>
 
       {(order.items ?? []).map((item) => (
         <AppText key={item.product_id} className="text-sm">
-          • {item.name || item.product_id.slice(0, 6)} ×{" "}
-          {item.quantity}
+          • {item.name || item.product_id.slice(0, 6)} × {item.quantity}
         </AppText>
       ))}
 
-      {order.status === "pending" && onConfirm && onCancel && (
-        <View className="flex-row gap-2 mt-2">
+      {order.status === 'pending' && onConfirm && onCancel && (
+        <View className="mt-2 flex-row gap-2">
           <Pressable
             disabled={acting === order.id}
             onPress={() => onConfirm(order.id)}
-            className="flex-1 bg-green-600 rounded-lg p-3"
-          >
-            <AppText className="text-white text-center">
-              Confirm
-            </AppText>
+            className="flex-1 rounded-lg bg-green-600 p-3">
+            <AppText className="text-center text-white">Confirm</AppText>
           </Pressable>
 
           <Pressable
             disabled={acting === order.id}
             onPress={() => onCancel(order.id)}
-            className="flex-1 bg-red-600 rounded-lg p-3"
-          >
-            <AppText className="text-white text-center">
-              Cancel
-            </AppText>
+            className="flex-1 rounded-lg bg-red-600 p-3">
+            <AppText className="text-center text-white">Cancel</AppText>
           </Pressable>
         </View>
       )}

@@ -52,7 +52,12 @@ def create_vendor_route(
     payload: VendorCreate,
     current_user=Depends(require_permissions("vendors.create"))
 ):
-    return create_vendor(payload.model_dump(), current_user["_jwt"])
+    vendor = create_vendor(current_user["_jwt"], payload.model_dump())
+
+    if not vendor:
+        raise HTTPException(status_code=403, detail="Not allowed to create vendor")
+
+    return vendor
 
 
 # -----------------------------

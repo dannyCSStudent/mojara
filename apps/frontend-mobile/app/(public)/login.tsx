@@ -1,20 +1,20 @@
-import { useState } from "react";
-import { View, TextInput, Pressable, Alert } from "react-native";
-import { useAppStore } from "../../store/useAppStore";
-import { Screen } from "../../components/Screen";
-import { AppText } from "../../components/AppText";
-import { router } from "expo-router";
+import { useState } from 'react';
+import { View, TextInput, Pressable, Alert } from 'react-native';
+import { useAppStore } from '../../store/useAppStore';
+import { Screen } from '../../components/Screen';
+import { AppText } from '../../components/AppText';
+import { router } from 'expo-router';
 
 export default function LoginScreen() {
   const signIn = useAppStore((s) => s.signIn);
 
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
   async function handleLogin() {
     if (!email || !password) {
-      Alert.alert("Please enter email and password.");
+      Alert.alert('Please enter email and password.');
       return;
     }
 
@@ -23,7 +23,7 @@ export default function LoginScreen() {
       await signIn(email, password);
     } catch (err) {
       console.error(err);
-      Alert.alert("Login failed. Please check your credentials.");
+      Alert.alert('Login failed. Please check your credentials.');
     } finally {
       setLoading(false);
     }
@@ -48,7 +48,7 @@ export default function LoginScreen() {
           </AppText>
 
           <TextInput
-            className="rounded-2xl border border-gray-300 dark:border-neutral-700 px-4 py-4 text-base bg-gray-100 dark:bg-neutral-800 text-black dark:text-white"
+            className="rounded-2xl border border-gray-300 bg-gray-100 px-4 py-4 text-base text-black dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
             placeholder="you@example.com"
             placeholderTextColor="#9CA3AF"
             value={email}
@@ -65,7 +65,7 @@ export default function LoginScreen() {
           </AppText>
 
           <TextInput
-            className="rounded-2xl border border-gray-300 dark:border-neutral-700 px-4 py-4 text-base bg-gray-100 dark:bg-neutral-800 text-black dark:text-white"
+            className="rounded-2xl border border-gray-300 bg-gray-100 px-4 py-4 text-base text-black dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
             placeholder="••••••••"
             placeholderTextColor="#9CA3AF"
             value={password}
@@ -78,20 +78,16 @@ export default function LoginScreen() {
         <Pressable
           onPress={handleLogin}
           disabled={loading}
-          className={`rounded-2xl py-4 items-center ${
-            loading ? "bg-gray-400" : "bg-blue-600"
-          }`}
-        >
+          className={`items-center rounded-2xl py-4 ${loading ? 'bg-gray-400' : 'bg-blue-600'}`}>
           <AppText variant="subheading" className="text-white">
-            {loading ? "Signing In..." : "Sign In"}
+            {loading ? 'Signing In...' : 'Sign In'}
           </AppText>
         </Pressable>
-        <Pressable onPress={() => router.replace("/signup")} className="mt-6">
+        <Pressable onPress={() => router.replace('/signup')} className="mt-6">
           <AppText variant="caption" className="text-center text-blue-600">
             Don’t have an account? Sign Up
           </AppText>
         </Pressable>
-
       </View>
     </Screen>
   );

@@ -2,7 +2,7 @@ from app.db import get_user_client
 from fastapi import HTTPException
 import httpx
 from postgrest import APIError
-from datetime import datetime
+from datetime import datetime, UTC
 
 
 # =========================
@@ -41,13 +41,35 @@ def create_subscription(jwt: str, user_id: str, payload: dict):
         "user_id": user_id,
     }
 
-    res = (
+    existing = (
         supabase
         .table("notification_subscriptions")
-        .insert(data)
-        .single()
+        .select("id")
+        .eq("user_id", user_id)
+        .eq("vendor_id", payload["vendor_id"])
+        .eq("event_type", payload["event_type"])
+        .eq("min_severity", payload["min_severity"])
+        .eq("channel", payload.get("channel", "push"))
+        .limit(1)
         .execute()
     )
+
+    if existing.data:
+        raise HTTPException(409, "Notification subscription already exists")
+
+    try:
+        res = (
+            supabase
+            .table("notification_subscriptions")
+            .insert(data)
+            .single()
+            .execute()
+        )
+    except APIError as e:
+        message = str(e).lower()
+        if "duplicate" in message or "unique" in message:
+            raise HTTPException(409, "Notification subscription already exists")
+        raise HTTPException(500, str(e))
 
     if not res.data:
         raise HTTPException(400, "Failed to create subscription")
@@ -120,11 +142,26 @@ def mark_notification_read(jwt: str, notification_id: str, user_id: str):
 
     supabase \
         .table("notifications") \
-        .update({"read_at": datetime.utcnow().isoformat()}) \
+        .update({"read_at": datetime.now(UTC).isoformat()}) \
         .eq("id", notification_id) \
         .execute()
 
     return True
+
+
+def mark_all_notifications_read(jwt: str, user_id: str):
+    supabase = get_user_client(jwt)
+
+    res = (
+        supabase
+        .table("notifications")
+        .update({"read_at": datetime.now(UTC).isoformat()})
+        .eq("user_id", user_id)
+        .is_("read_at", None)
+        .execute()
+    )
+
+    return len(res.data or [])
 
 
 def get_unread_count(jwt: str, user_id: str):

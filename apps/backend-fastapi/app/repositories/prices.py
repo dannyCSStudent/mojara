@@ -37,11 +37,15 @@ def get_active_price_agreements(jwt: str):
 # -----------------------------------------
 # Admin Price Agreements
 # -----------------------------------------
-def get_admin_price_agreements(jwt: str):
+def get_admin_price_agreements(
+    jwt: str,
+    status: str | None = None,
+    market_id: str | None = None,
+):
     supabase = get_user_client(jwt)
 
     try:
-        res = (
+        query = (
             supabase
             .from_("price_agreements")
             .select(
@@ -58,9 +62,14 @@ def get_admin_price_agreements(jwt: str):
                 created_at
                 """
             )
-            .order("created_at", desc=True)
-            .execute()
         )
+
+        if status:
+            query = query.eq("status", status)
+        if market_id:
+            query = query.eq("market_id", market_id)
+
+        res = query.order("created_at", desc=True).execute()
     except (APIError, ConnectionError) as e:
         raise HTTPException(500, f"Database error: {e}")
 

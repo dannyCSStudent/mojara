@@ -1,4 +1,4 @@
-import { create } from "zustand";
+import { create } from 'zustand';
 
 export type CartItem = {
   product_id: string;
@@ -28,11 +28,10 @@ interface CartState {
 
   /* actions */
   initCart: (marketId: string, vendorId: string) => void;
-  addItem: (item: Omit<CartItem, "quantity">) => void;
+  addItem: (item: Omit<CartItem, 'quantity'>) => void;
   removeItem: (productId: string) => void;
   clearCart: () => void;
 }
-
 
 export const useCartStore = create<CartState>((set, get) => ({
   marketId: null,
@@ -69,9 +68,7 @@ export const useCartStore = create<CartState>((set, get) => ({
 
     const nextItems = existing
       ? items.map((i) =>
-          i.product_id === item.product_id
-            ? { ...i, quantity: i.quantity + 1 }
-            : i
+          i.product_id === item.product_id ? { ...i, quantity: i.quantity + 1 } : i
         )
       : [...items, { ...item, quantity: 1 }];
 
@@ -82,9 +79,7 @@ export const useCartStore = create<CartState>((set, get) => ({
   },
 
   removeItem: (productId) => {
-    const nextItems = get().items.filter(
-      (i) => i.product_id !== productId
-    );
+    const nextItems = get().items.filter((i) => i.product_id !== productId);
 
     set({
       items: nextItems,

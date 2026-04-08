@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.json",
+  "include": ["utils/adminNavigation.ts", "utils/adminUsersViewState.ts"],
+  "exclude": [],
+  "compilerOptions": {
+    "outDir": "/tmp/mojara-frontend-mobile-test-dist",
+    "rootDir": ".",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "target": "ES2022",
+    "declaration": false,
+    "sourceMap": false,
+    "noEmit": false
+  }
+}

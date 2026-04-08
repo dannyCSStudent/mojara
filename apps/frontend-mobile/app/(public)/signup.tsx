@@ -1,17 +1,17 @@
-import { useState } from "react";
-import { View, TextInput, Pressable, Alert} from "react-native";
-import { router } from "expo-router";
-import { Screen } from "../../components/Screen";
-import { AppText } from "../../components/AppText";
-import { AppButton } from "../../components/AppButton";
-import { useAppStore } from "../../store/useAppStore";
+import { useState } from 'react';
+import { View, TextInput, Pressable, Alert } from 'react-native';
+import { router } from 'expo-router';
+import { Screen } from '../../components/Screen';
+import { AppText } from '../../components/AppText';
+import { AppButton } from '../../components/AppButton';
+import { useAppStore } from '../../store/useAppStore';
 
 export default function SignupScreen() {
   const signUp = useAppStore((s) => s.signUp);
 
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirm, setConfirm] = useState("");
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirm, setConfirm] = useState('');
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -20,17 +20,17 @@ export default function SignupScreen() {
     setError(null);
 
     if (!email || !password || !confirm) {
-      setError("Please fill all fields.");
+      setError('Please fill all fields.');
       return;
     }
 
     if (password.length < 6) {
-      setError("Password must be at least 6 characters.");
+      setError('Password must be at least 6 characters.');
       return;
     }
 
     if (password !== confirm) {
-      setError("Passwords do not match.");
+      setError('Passwords do not match.');
       return;
     }
 
@@ -38,13 +38,13 @@ export default function SignupScreen() {
       setLoading(true);
       await signUp(email.trim(), password);
       Alert.alert(
-        "Check your email",
-        "We sent you a confirmation link. Please verify your account before logging in."
+        'Check your email',
+        'We sent you a confirmation link. Please verify your account before logging in.'
       );
 
-      router.replace("/"); // redirect to root (auth guard will handle)
+      router.replace('/'); // redirect to root (auth guard will handle)
     } catch (err: any) {
-      setError(err.message || "Something went wrong.");
+      setError(err.message || 'Something went wrong.');
     } finally {
       setLoading(false);
     }
@@ -70,7 +70,7 @@ export default function SignupScreen() {
             autoCapitalize="none"
             keyboardType="email-address"
             placeholder="you@example.com"
-            className="border border-gray-300 dark:border-gray-700 rounded-xl px-4 py-3 text-black dark:text-white"
+            className="rounded-xl border border-gray-300 px-4 py-3 text-black dark:border-gray-700 dark:text-white"
           />
         </View>
 
@@ -82,7 +82,7 @@ export default function SignupScreen() {
             onChangeText={setPassword}
             secureTextEntry
             placeholder="Enter password"
-            className="border border-gray-300 dark:border-gray-700 rounded-xl px-4 py-3 text-black dark:text-white"
+            className="rounded-xl border border-gray-300 px-4 py-3 text-black dark:border-gray-700 dark:text-white"
           />
         </View>
 
@@ -94,34 +94,25 @@ export default function SignupScreen() {
             onChangeText={setConfirm}
             secureTextEntry
             placeholder="Confirm password"
-            className="border border-gray-300 dark:border-gray-700 rounded-xl px-4 py-3 text-black dark:text-white"
+            className="rounded-xl border border-gray-300 px-4 py-3 text-black dark:border-gray-700 dark:text-white"
           />
         </View>
 
         {/* Error */}
         {error && (
-          <AppText variant="caption" className="text-red-500 mb-4">
+          <AppText variant="caption" className="mb-4 text-red-500">
             {error}
           </AppText>
         )}
 
         {/* Button */}
-        <AppButton
-          onPress={handleSignup}
-          loading={loading}
-          className="mt-2"
-        >
+        <AppButton onPress={handleSignup} loading={loading} className="mt-2">
           Create Account
         </AppButton>
 
         {/* Login Link */}
-        <Pressable
-          onPress={() => router.push("/login")}
-          className="mt-6 items-center"
-        >
-          <AppText variant="caption">
-            Already have an account? Log in
-          </AppText>
+        <Pressable onPress={() => router.push('/login')} className="mt-6 items-center">
+          <AppText variant="caption">Already have an account? Log in</AppText>
         </Pressable>
       </View>
     </Screen>

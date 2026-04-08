@@ -30,7 +30,7 @@ importers:
         version: 2.2.0(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))
       '@repo/permissions':
         specifier: workspace:^
-        version: link:../../packages/premissions
+        version: link:../../packages/permissions
       '@repo/types':
         specifier: workspace:^
         version: link:../../packages/types
@@ -114,6 +114,8 @@ importers:
         specifier: ~5.9.2
         version: 5.9.2
 
+  apps/worker-notifications: {}
+
   packages/eslint-config:
     devDependencies:
       '@eslint/js':
@@ -150,7 +152,11 @@ importers:
         specifier: ^8.50.0
         version: 8.56.0(eslint@9.39.3(jiti@1.21.7))(typescript@5.9.2)
 
-  packages/premissions: {}
+  packages/permissions:
+    dependencies:
+      '@repo/types':
+        specifier: workspace:*
+        version: link:../types
 
   packages/types: {}
 

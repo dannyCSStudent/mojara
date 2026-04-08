@@ -9,12 +9,7 @@ export interface OrderItem {
 
 export interface OrderEvent {
   id: string;
-  type:
-    | "created"
-    | "confirmed"
-    | "canceled"
-    | "refunded_partial"
-    | "refunded_full";
+  type: 'created' | 'confirmed' | 'canceled' | 'refunded_partial' | 'refunded_full';
   amount?: number;
   reason?: string;
   created_at: string;
@@ -25,7 +20,7 @@ export interface Order {
   market_id: string;
   vendor_id: string;
   user_id: string;
-  status: "pending" | "confirmed" | "canceled" | "refunded";
+  status: 'pending' | 'confirmed' | 'canceled' | 'refunded';
   created_at: string;
   items: OrderItem[];
   total: number;
@@ -33,7 +28,6 @@ export interface Order {
   refunds: Refund[];
   events: OrderEvent[];
 }
-
 
 // types.ts
 
@@ -48,4 +42,3 @@ export interface IssueRefundPayload {
   amount: number;
   reason?: string;
 }
-

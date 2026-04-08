@@ -112,16 +112,24 @@ def delete_vendor(jwt: str, vendor_id: UUID):
 # -----------------------------
 # Vendors by market
 # -----------------------------
-def list_vendors_for_market(jwt: str, market_id: UUID):
+def list_vendors_for_market(
+    jwt: str,
+    market_id: UUID,
+    *,
+    search: str | None = None,
+):
     supabase = get_user_client(jwt)
 
-    res = (
+    query = (
         supabase
         .table("vendors")
         .select("*")
         .eq("market_id", str(market_id))
-        .order("created_at", desc=False)
-        .execute()
     )
+
+    if search:
+        query = query.ilike("name", f"%{search}%")
+
+    res = query.order("created_at", desc=False).execute()
 
     return res.data or []

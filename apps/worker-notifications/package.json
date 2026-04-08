@@ -1,0 +1,9 @@
+{
+  "name": "worker-notifications",
+  "private": true,
+  "scripts": {
+    "lint": "python3 -m compileall .",
+    "check-types": "python3 -m compileall .",
+    "test": "python3 -m unittest discover -s tests -p 'test*.py'"
+  }
+}

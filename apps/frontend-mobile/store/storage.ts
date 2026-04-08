@@ -1,1 +1,1 @@
-export { storage } from "./storage.native";
+export { storage } from './storage.native';
