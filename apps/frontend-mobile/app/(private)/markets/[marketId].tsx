@@ -20,6 +20,7 @@ export default function MarketVendorsScreen() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -33,11 +34,16 @@ export default function MarketVendorsScreen() {
     if (!marketId) return;
 
     setLoading(true);
+    setErrorMessage(null);
 
     Promise.all([fetchMarket(marketId).catch(() => null), fetchVendors(marketId, debouncedSearch)])
       .then(([marketData, vendorData]) => {
         setMarket(marketData);
         setVendors(vendorData);
+      })
+      .catch((error: any) => {
+        setVendors([]);
+        setErrorMessage(error?.message ?? 'Failed to load market vendors.');
       })
       .finally(() => setLoading(false));
   }, [marketId, debouncedSearch]);
@@ -48,8 +54,13 @@ export default function MarketVendorsScreen() {
   async function handleToggleSubscription() {
     if (!marketId) return;
 
-    await toggleMarketSubscription(marketId);
-    await loadMarkets();
+    try {
+      setErrorMessage(null);
+      await toggleMarketSubscription(marketId);
+      await loadMarkets();
+    } catch (error: any) {
+      setErrorMessage(error?.message ?? 'Failed to update market subscription.');
+    }
   }
 
   if (loading) {
@@ -116,6 +127,14 @@ export default function MarketVendorsScreen() {
           autoCapitalize="none"
         />
       </View>
+
+      {errorMessage ? (
+        <View className="rounded-xl border border-red-200 bg-red-50 p-3 dark:border-red-900 dark:bg-red-950">
+          <AppText variant="caption" className="text-red-700 dark:text-red-300">
+            {errorMessage}
+          </AppText>
+        </View>
+      ) : null}
 
       {vendors.length === 0 ? (
         <EmptyState

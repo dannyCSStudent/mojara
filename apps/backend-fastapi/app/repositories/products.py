@@ -80,6 +80,10 @@ def get_products_for_vendor(
             id,
             name,
             price,
+            active,
+            stock_quantity,
+            is_available,
+            vendor_id,
             created_at,
             vendor:vendors!inner (
                 id,

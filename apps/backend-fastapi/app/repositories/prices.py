@@ -1,5 +1,5 @@
 # repositories/prices.py
-from app.db import get_user_client
+from app.db import get_service_client, get_user_client
 from fastapi import HTTPException
 from postgrest import APIError
 from uuid import UUID
@@ -7,8 +7,8 @@ from uuid import UUID
 # -----------------------------------------
 # Active Price Agreements
 # -----------------------------------------
-def get_active_price_agreements(jwt: str):
-    supabase = get_user_client(jwt)
+def get_active_price_agreements():
+    supabase = get_service_client()
 
     try:
         res = (

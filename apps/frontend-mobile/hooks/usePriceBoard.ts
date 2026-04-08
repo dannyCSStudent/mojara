@@ -1,40 +1,32 @@
 import { useEffect, useState, useCallback } from 'react';
 import { fetchActivePrices, ActivePrice } from '../api/prices';
-import { useAppStore } from '../store/useAppStore';
 import { usePolling } from './usePolling';
 
-export function usePriceBoard(marketId: string) {
-  const authToken = useAppStore((s) => s.authToken);
-  const isAuthenticated = useAppStore((s) => s.isAuthenticated);
-
+export function usePriceBoard(marketId?: string | null) {
   const [prices, setPrices] = useState<ActivePrice[]>([]);
   const [loading, setLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const loadPrices = useCallback(async () => {
-    if (!authToken) return;
-
     setLoading(true);
+    setErrorMessage(null);
     try {
       const data = await fetchActivePrices();
-      setPrices(data.filter((p) => p.market_id === marketId));
+      setPrices(marketId ? data.filter((p) => p.market_id === marketId) : data);
     } catch (err) {
+      setPrices([]);
+      setErrorMessage(err instanceof Error ? err.message : 'Failed to load prices.');
       console.error('Failed to load prices', err);
     } finally {
       setLoading(false);
     }
-  }, [authToken, marketId]);
+  }, [marketId]);
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      setPrices([]);
-      setLoading(false);
-      return;
-    }
-
     setLoading(true);
-  }, [isAuthenticated, marketId]);
+  }, [marketId]);
 
-  usePolling(loadPrices, 5000, isAuthenticated);
+  usePolling(loadPrices, 5000, true);
 
-  return { prices, loading };
+  return { prices, loading, errorMessage };
 }

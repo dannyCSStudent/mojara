@@ -2,8 +2,8 @@ import { View } from 'react-native';
 import { AppText, Screen } from '../../components';
 import { usePriceBoard } from '../../hooks/usePriceBoard';
 
-export default function PriceBoard({ marketId }: { marketId: string }) {
-  const { prices, loading } = usePriceBoard(marketId);
+export default function PriceBoard() {
+  const { prices, loading, errorMessage } = usePriceBoard();
 
   return (
     <Screen>
@@ -15,8 +15,19 @@ export default function PriceBoard({ marketId }: { marketId: string }) {
       {/* Loading */}
       {loading && <AppText variant="muted">Loading prices…</AppText>}
 
+      {errorMessage ? (
+        <View className="mb-4 rounded-xl border border-red-200 bg-red-50 p-4 dark:border-red-900 dark:bg-red-950">
+          <AppText variant="subheading" className="mb-1 text-red-700 dark:text-red-300">
+            Unable to load prices
+          </AppText>
+          <AppText variant="muted" className="text-red-700 dark:text-red-300">
+            {errorMessage}
+          </AppText>
+        </View>
+      ) : null}
+
       {/* Empty state */}
-      {!loading && prices.length === 0 && (
+      {!loading && !errorMessage && prices.length === 0 && (
         <View className="rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-900">
           <AppText variant="subheading" className="mb-1">
             No active prices
@@ -32,8 +43,11 @@ export default function PriceBoard({ marketId }: { marketId: string }) {
 
           return (
             <View
-              key={p.size_band_id}
+              key={`${p.market_id}-${p.size_band_id}`}
               className="mb-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-black">
+              <AppText variant="caption" className="mb-2">
+                Market: {p.market_id}
+              </AppText>
               {/* Price */}
               <AppText variant="title">${p.reference_price} / kg</AppText>
 

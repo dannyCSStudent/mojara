@@ -19,6 +19,7 @@ export default function VendorProductsScreen() {
   const [sort, setSort] = useState<'name' | 'price_asc' | 'price_desc'>('name');
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const initCart = useCartStore((s) => s.initCart);
   const addItem = useCartStore((s) => s.addItem);
@@ -44,6 +45,7 @@ export default function VendorProductsScreen() {
 
     setupCart();
     setLoading(true);
+    setErrorMessage(null);
 
     const parsedMinPrice = minPrice.trim() === '' ? undefined : Number(minPrice);
     const parsedMaxPrice = maxPrice.trim() === '' ? undefined : Number(maxPrice);
@@ -57,6 +59,10 @@ export default function VendorProductsScreen() {
       sort,
     })
       .then(setProducts)
+      .catch((error: any) => {
+        setProducts([]);
+        setErrorMessage(error?.message ?? 'Failed to load products.');
+      })
       .finally(() => setLoading(false));
   }, [marketId, vendorId, setupCart, debouncedSearch, minPrice, maxPrice, sort]);
 
@@ -120,6 +126,14 @@ export default function VendorProductsScreen() {
           );
         })}
       </View>
+
+      {errorMessage ? (
+        <View className="rounded-xl border border-red-200 bg-red-50 p-3 dark:border-red-900 dark:bg-red-950">
+          <AppText variant="caption" className="text-red-700 dark:text-red-300">
+            {errorMessage}
+          </AppText>
+        </View>
+      ) : null}
 
       {products.length === 0 && (
         <EmptyState title="No Products Found" description="Adjust the search or price filters." />

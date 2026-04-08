@@ -20,8 +20,8 @@ router = APIRouter(prefix="/prices", tags=["Prices"])
 # Get active locked price agreements
 # -----------------------------------------
 @router.get("/active", response_model=List[ActivePriceAgreementOut])
-def read_active_prices(jwt: str = Depends(get_current_jwt)):
-    return get_active_price_agreements(jwt)
+def read_active_prices():
+    return get_active_price_agreements()
 
 # -----------------------------------------
 # Admin: list all price agreements
