@@ -1,6 +1,6 @@
 // api/notifications.ts
 
-import { apiRequest } from './client';
+import { ApiError, apiRequest } from './client';
 
 export type Notification = {
   id: string;
@@ -33,12 +33,28 @@ type UnreadCountResponse = {
   count: number;
 };
 
-export function fetchNotifications() {
-  return apiRequest<Notification[]>('/notifications');
+function handleForbidden(err: unknown): never {
+  if (err instanceof ApiError && err.status === 403) {
+    throw new Error('FORBIDDEN');
+  }
+
+  throw err;
 }
 
-export function fetchNotificationSubscriptions() {
-  return apiRequest<NotificationSubscription[]>('/notifications/subscriptions');
+export async function fetchNotifications() {
+  try {
+    return await apiRequest<Notification[]>('/notifications');
+  } catch (err) {
+    handleForbidden(err);
+  }
+}
+
+export async function fetchNotificationSubscriptions() {
+  try {
+    return await apiRequest<NotificationSubscription[]>('/notifications/subscriptions');
+  } catch (err) {
+    handleForbidden(err);
+  }
 }
 
 export function createNotificationSubscription(payload: NotificationSubscriptionInput) {

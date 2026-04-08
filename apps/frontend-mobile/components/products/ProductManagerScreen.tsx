@@ -286,7 +286,7 @@ export function ProductManagerScreen({
     }
   }
 
-  if (loading && products.length === 0 && !marketId) {
+  if (loading && products.length === 0 && marketId && vendorId) {
     return <LoadingState />;
   }
 

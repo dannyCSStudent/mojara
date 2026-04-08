@@ -1,5 +1,5 @@
 // api/adminPrices.ts
-import { apiRequest } from './client';
+import { ApiError, apiRequest } from './client';
 
 export type AdminPriceAgreement = {
   id: string;
@@ -26,7 +26,7 @@ export type AdminPriceExplainRow = {
 };
 
 function handleForbidden(err: any): never {
-  if (err?.response?.status === 403) {
+  if (err instanceof ApiError && err.status === 403) {
     throw new Error('FORBIDDEN');
   }
   throw err;

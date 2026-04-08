@@ -18,7 +18,7 @@ from app.repositories.notifications import (
     mark_all_notifications_read,
     get_unread_count
 )
-from app.core.dependencies import get_current_user, require_permissions
+from app.core.dependencies import require_permissions
 
 router = APIRouter(prefix="/notifications", tags=["Notifications"])
 
@@ -100,15 +100,6 @@ def mark_all_read(
         user_id=current_user["sub"],
     )
     return {"ok": True, "updated": updated}
-
-# -----------------------------------------
-# Debug current user (admin/debug only)
-# -----------------------------------------
-@router.get("/debug-auth")
-def debug_auth(
-    current_user = Depends(require_permissions("notifications.read"))
-):
-    return current_user
 
 # -----------------------------------------
 # Unread notification count
